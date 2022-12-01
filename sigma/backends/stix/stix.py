@@ -25,7 +25,7 @@ class stixBackend(TextQueryBackend):
     group_expression : ClassVar[str] = "({expr})"   # Expression for precedence override grouping as format string with {expr} placeholder
 
     # Generated query tokens
-    token_separator : str = " "     # separator inserted between all boolean operators
+    # token_separator : str = " "     # separator inserted between all boolean operators
     or_token : ClassVar[str] = "OR"
     and_token : ClassVar[str] = "AND"
     not_token : ClassVar[str] = "NOT "
@@ -45,8 +45,8 @@ class stixBackend(TextQueryBackend):
     ## Values
     str_quote       : ClassVar[str] = "'"     # string quoting character (added as escaping character)
     escape_char     : ClassVar[str] = "\\"    # Escaping character for special characrers inside string
-    wildcard_multi  : ClassVar[str] = "*"     # Character used as multi-character wildcard
-    wildcard_single : ClassVar[str] = "*"     # Character used as single-character wildcard
+    wildcard_multi  : ClassVar[str] = "%"     # Character used as multi-character wildcard
+    wildcard_single : ClassVar[str] = "%"     # Character used as single-character wildcard
     add_escaped     : ClassVar[str] = "\\"    # Characters quoted in addition to wildcards and string quote
     filter_chars    : ClassVar[str] = ""      # Characters filtered
     bool_values     : ClassVar[Dict[bool, str]] = {   # Values to which boolean values are mapped.
@@ -55,10 +55,10 @@ class stixBackend(TextQueryBackend):
     }
 
     # String matching operators. if none is appropriate eq_token is used.
-    startswith_expression : ClassVar[str] = "startswith"
-    endswith_expression   : ClassVar[str] = "endswith"
-    contains_expression   : ClassVar[str] = "contains"
-    wildcard_match_expression : ClassVar[str] = "match"      # Special expression if wildcards can't be matched with the eq_token operator
+    startswith_expression : ClassVar[str] = "{field} LIKE '{value}%'"
+    endswith_expression   : ClassVar[str] = "{field} LIKE '%{value}'"
+    contains_expression   : ClassVar[str] = "{field} LIKE '%{value}%'"
+    # wildcard_match_expression : ClassVar[str] = "match"      # Special expression if wildcards can't be matched with the eq_token operator
 
     # Regular expressions
     re_expression : ClassVar[str] = "{field} =~ {regex}"  # Regular expression query as format string with placeholders {field} and {regex}
@@ -95,12 +95,12 @@ class stixBackend(TextQueryBackend):
     # Value not bound to a field
     unbound_value_str_expression : ClassVar[str] = "'{value}'"   # Expression for string value not bound to a field as format string with placeholder {value}
     unbound_value_num_expression : ClassVar[str] = '{value}'   # Expression for number value not bound to a field as format string with placeholder {value}
-    unbound_value_re_expression : ClassVar[str] = '_=~{value}'    # Expression for regular expression not bound to a field as format string with placeholder {value}
+    unbound_value_re_expression : ClassVar[str] = '{value}'    # Expression for regular expression not bound to a field as format string with placeholder {value}
 
     # Query finalization: appending and concatenating deferred query part
-    deferred_start : ClassVar[str] = "\n| "               # String used as separator between main query and deferred parts
-    deferred_separator : ClassVar[str] = "\n| "           # String used to join multiple deferred query parts
-    deferred_only_query : ClassVar[str] = "*"            # String used as query if final query only contains deferred expression
+    deferred_start : ClassVar[str] = ""               # String used as separator between main query and deferred parts
+    deferred_separator : ClassVar[str] = ""           # String used to join multiple deferred query parts
+    deferred_only_query : ClassVar[str] = ""            # String used as query if final query only contains deferred expression
 
     # TODO: implement custom methods for query elements not covered by the default backend base.
     # Documentation: https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html

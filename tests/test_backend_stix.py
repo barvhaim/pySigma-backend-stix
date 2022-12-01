@@ -95,7 +95,7 @@ def test_stix_in_expression(stix_backend : stixBackend):
                         - valueC*
                 condition: sel
         """)
-    ) == ["[fieldA = 'valueA' OR fieldA = 'valueB' OR fieldA = 'valueC*']"]
+    ) == ["[fieldA = 'valueA' OR fieldA = 'valueB' OR fieldA LIKE 'valueC%']"]
 
 def test_stix_regex_query(stix_backend : stixBackend):
     assert stix_backend.convert(
