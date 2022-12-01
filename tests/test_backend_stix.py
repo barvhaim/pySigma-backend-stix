@@ -17,11 +17,11 @@ def test_stix_and_expression(stix_backend : stixBackend):
                 product: test_product
             detection:
                 sel:
-                    'file:name': foobar.exe
-                    'file:size': 1000
+                    fieldA: valueA
+                    fieldB: valueB
                 condition: sel
         """)
-    ) == ["[file:name = 'foobar.exe' AND file:size = 1000]"]
+    ) == ["[fieldA = 'valueA' AND fieldB = 'valueB']"]
 
 def test_stix_or_expression(stix_backend : stixBackend):
     assert stix_backend.convert(
@@ -38,7 +38,7 @@ def test_stix_or_expression(stix_backend : stixBackend):
                     fieldB: valueB
                 condition: 1 of sel*
         """)
-    ) == ['<insert expected result here>']
+    ) == ["[fieldA = 'valueA' OR fieldB = 'valueB']"]
 
 def test_stix_and_or_expression(stix_backend : stixBackend):
     assert stix_backend.convert(
@@ -58,7 +58,7 @@ def test_stix_and_or_expression(stix_backend : stixBackend):
                         - valueB2
                 condition: sel
         """)
-    ) == ['<insert expected result here>']
+    ) == ["[(fieldA = 'valueA1' OR fieldA = 'valueA2') AND (fieldB = 'valueB1' OR fieldB = 'valueB2')]"]
 
 def test_stix_or_and_expression(stix_backend : stixBackend):
     assert stix_backend.convert(
@@ -77,7 +77,7 @@ def test_stix_or_and_expression(stix_backend : stixBackend):
                     fieldB: valueB2
                 condition: 1 of sel*
         """)
-    ) == ['<insert expected result here>']
+    ) == ["[fieldA = 'valueA1' AND fieldB = 'valueB1' OR fieldA = 'valueA2' AND fieldB = 'valueB2']"]
 
 def test_stix_in_expression(stix_backend : stixBackend):
     assert stix_backend.convert(
@@ -95,7 +95,7 @@ def test_stix_in_expression(stix_backend : stixBackend):
                         - valueC*
                 condition: sel
         """)
-    ) == ['<insert expected result here>']
+    ) == ["[fieldA = 'valueA' OR fieldA = 'valueB' OR fieldA = 'valueC*']"]
 
 def test_stix_regex_query(stix_backend : stixBackend):
     assert stix_backend.convert(
