@@ -3,7 +3,7 @@ from sigma.rule import SigmaRule
 from sigma.conversion.base import TextQueryBackend
 from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT
 from sigma.types import SigmaCompareExpression
-from sigma.pipelines.stix import # TODO: add pipeline imports or delete this line
+# from sigma.pipelines.stix import # TODO: add pipeline imports or delete this line
 import sigma
 import re
 from typing import ClassVar, Dict, Tuple, Pattern, List, Any
