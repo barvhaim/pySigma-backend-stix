@@ -21,7 +21,9 @@ def stix_example() -> ProcessingPipeline:      # Processing pipelines should be 
             ProcessingItem(     # Field mappings
                 identifier="stix_field_mapping",
                 transformation=FieldMappingTransformation({
-                    "EventID": "event_id",      # TODO: define your own field mappings
+                    "EventID": "event_id",
+                    "filename": "file:name",
+                    "filesize": "file:size",
                 })
             )
         ],

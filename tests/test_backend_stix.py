@@ -17,11 +17,11 @@ def test_stix_and_expression(stix_backend : stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
-                    fieldB: valueB
+                    'file:name': foobar.exe
+                    'file:size': 1000
                 condition: sel
         """)
-    ) == ['<insert expected result here>']
+    ) == ["[file:name = 'foobar.exe' AND file:size = 1000]"]
 
 def test_stix_or_expression(stix_backend : stixBackend):
     assert stix_backend.convert(
