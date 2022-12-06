@@ -113,44 +113,59 @@ def test_stix_regex_query(stix_backend : stixBackend):
         """)
     ) == ["[fieldA MATCHES '.+\\@example\\.com$' AND fieldB = 'foo']"]
 
-def test_stix_cidr_query(stix_backend : stixBackend):
-    assert stix_backend.convert(
-        SigmaCollection.from_yaml("""
-            title: Test
-            status: test
-            logsource:
-                category: test_category
-                product: test_product
-            detection:
-                sel:
-                    field|cidr: 192.168.0.0/16
-                condition: sel
-        """)
-    ) == ['<insert expected result here>']
+# def test_stix_cidr_query(stix_backend : stixBackend):
+#     assert stix_backend.convert(
+#         SigmaCollection.from_yaml("""
+#             title: Test
+#             status: test
+#             logsource:
+#                 category: test_category
+#                 product: test_product
+#             detection:
+#                 sel:
+#                     field|cidr: 192.168.0.0/16
+#                 condition: sel
+#         """)
+#     ) == ['<insert expected result here>']
 
-def test_stix_field_name_with_whitespace(stix_backend : stixBackend):
-    assert stix_backend.convert(
-        SigmaCollection.from_yaml("""
-            title: Test
-            status: test
-            logsource:
-                category: test_category
-                product: test_product
-            detection:
-                sel:
-                    field name: value
-                condition: sel
-        """)
-    ) == ['<insert expected result here>']
+# def test_stix_field_name_with_whitespace(stix_backend : stixBackend):
+#     assert stix_backend.convert(
+#         SigmaCollection.from_yaml("""
+#             title: Test
+#             status: test
+#             logsource:
+#                 category: test_category
+#                 product: test_product
+#             detection:
+#                 sel:
+#                     field name: value
+#                 condition: sel
+#         """)
+#     ) == ['<insert expected result here>']
 
 # TODO: implement tests for all backend features that don't belong to the base class defaults, e.g. features that were
 # implemented with custom code, deferred expressions etc.
 
+# def test_stix_not_expression(stix_backend : stixBackend):
+#     assert stix_backend.convert(
+#         SigmaCollection.from_yaml("""
+#             title: Test
+#             status: test
+#             logsource:
+#                 category: test_category
+#                 product: test_product
+#             detection:
+#                 sel:
+#                     fieldA: valueA
+#                     fieldB: valueB
+#                 condition: not sel
+#         """)
+#     ) == ["[ fieldA != 'valueA' OR fieldB != 'valueB' ]"]
 
 
-def test_stix_stix_output(stix_backend : stixBackend):
-    """Test for output format stix."""
-    # TODO: implement a test for the output format
-    pass
+# def test_stix_stix_output(stix_backend : stixBackend):
+#     """Test for output format stix."""
+#     # TODO: implement a test for the output format
+#     pass
 
 
