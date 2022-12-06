@@ -1,11 +1,13 @@
+from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
 from sigma.rule import SigmaRule
 from sigma.conversion.base import TextQueryBackend
-from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT
+from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, ConditionFieldEqualsValueExpression
 from sigma.types import SigmaCompareExpression
 import sigma
 import re
-from typing import ClassVar, Dict, Tuple, Pattern, List, Any, Optional
+from typing import ClassVar, Dict, Tuple, Pattern, List, Any, Optional, Union
+
 
 class stixBackend(TextQueryBackend):
     """stix backend."""
@@ -25,7 +27,7 @@ class stixBackend(TextQueryBackend):
     group_expression : ClassVar[str] = "({expr})"   # Expression for precedence override grouping as format string with {expr} placeholder
 
     # Generated query tokens
-    # token_separator : str = " "     # separator inserted between all boolean operators
+    token_separator : str = " "     # separator inserted between all boolean operators
     or_token : ClassVar[str] = "OR"
     and_token : ClassVar[str] = "AND"
     not_token : ClassVar[str] = "NOT "
@@ -45,20 +47,15 @@ class stixBackend(TextQueryBackend):
     ## Values
     str_quote       : ClassVar[str] = "'"     # string quoting character (added as escaping character)
     escape_char     : ClassVar[str] = "\\"    # Escaping character for special characrers inside string
-    wildcard_multi  : ClassVar[str] = "%"     # Character used as multi-character wildcard
-    wildcard_single : ClassVar[str] = "%"     # Character used as single-character wildcard
+    wildcard_multi  : ClassVar[str] = "*"     # Character used as multi-character wildcard
+    wildcard_single : ClassVar[str] = "*"     # Character used as single-character wildcard
     add_escaped     : ClassVar[str] = "\\"    # Characters quoted in addition to wildcards and string quote
     filter_chars    : ClassVar[str] = ""      # Characters filtered
     bool_values     : ClassVar[Dict[bool, str]] = {   # Values to which boolean values are mapped.
         True: "true",
         False: "false",
     }
-
-    # String matching operators. if none is appropriate eq_token is used.
-    startswith_expression : ClassVar[str] = "{field} LIKE '{value}%'"
-    endswith_expression   : ClassVar[str] = "{field} LIKE '%{value}'"
-    contains_expression   : ClassVar[str] = "{field} LIKE '%{value}%'"
-    # wildcard_match_expression : ClassVar[str] = "match"      # Special expression if wildcards can't be matched with the eq_token operator
+    like_token = "LIKE"
 
     # Regular expressions
     re_expression : ClassVar[str] = "{field} =~ {regex}"  # Regular expression query as format string with placeholders {field} and {regex}
@@ -109,7 +106,26 @@ class stixBackend(TextQueryBackend):
                  collect_errors: bool = False, **kwargs):
         super().__init__(processing_pipeline, collect_errors, **kwargs)
 
-
+    def convert_condition_field_eq_val_str(self, cond : ConditionFieldEqualsValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        field = cond.field
+        val = cond.value.to_plain()
+        val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
+        # contains case
+        if val.startswith(self.wildcard_single) and val.endswith(self.wildcard_single):
+            result = field + self.token_separator + self.like_token + self.token_separator + \
+                     self.str_quote + f'%{val_no_wc}%' + self.str_quote
+        # startswith case
+        elif val.endswith(self.wildcard_single) and not val.startswith(self.wildcard_single):
+            result = field + self.token_separator + self.like_token + self.token_separator + \
+                     self.str_quote + f'{val_no_wc}%' + self.str_quote
+        # endswith case
+        elif val.startswith(self.wildcard_single) and not val.endswith(self.wildcard_single):
+            result = field + self.token_separator + self.like_token + self.token_separator + \
+                     self.str_quote + f'%{val_no_wc}' + self.str_quote
+        # plain equals case
+        else:
+            result = field + self.eq_token + self.str_quote + val + self.str_quote
+        return result
     
     def finalize_query_default(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> Any:
         # TODO: implement the per-query output for the output format stix here. Usually, the generated query is
