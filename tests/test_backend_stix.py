@@ -107,11 +107,11 @@ def test_stix_regex_query(stix_backend : stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA|re: foo.*bar
+                    fieldA|re: '.+\\@example\\.com$'
                     fieldB: foo
                 condition: sel
         """)
-    ) == ['<insert expected result here>']
+    ) == ["[fieldA MATCHES '.+\\@example\\.com$' AND fieldB = 'foo']"]
 
 def test_stix_cidr_query(stix_backend : stixBackend):
     assert stix_backend.convert(

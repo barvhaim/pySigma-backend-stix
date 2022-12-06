@@ -58,7 +58,7 @@ class stixBackend(TextQueryBackend):
     like_token = "LIKE"
 
     # Regular expressions
-    re_expression : ClassVar[str] = "{field} =~ {regex}"  # Regular expression query as format string with placeholders {field} and {regex}
+    re_expression : ClassVar[str] = "{field} MATCHES '{regex}'"  # Regular expression query as format string with placeholders {field} and {regex}
     re_escape_char : ClassVar[str] = "\\"               # Character used for escaping in regular expressions
     re_escape : ClassVar[Tuple[str]] = ()               # List of strings that are escaped
 
@@ -126,6 +126,13 @@ class stixBackend(TextQueryBackend):
         else:
             result = field + self.eq_token + self.str_quote + val + self.str_quote
         return result
+
+    def convert_condition_field_eq_val_re(self, cond : ConditionFieldEqualsValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of field matches regular expression value expressions."""
+        return self.re_expression.format(
+            field=cond.field,
+            regex=cond.value.regexp
+        )
     
     def finalize_query_default(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> Any:
         # TODO: implement the per-query output for the output format stix here. Usually, the generated query is
