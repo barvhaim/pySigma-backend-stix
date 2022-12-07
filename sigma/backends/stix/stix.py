@@ -2,7 +2,8 @@ from sigma.conversion.deferred import DeferredQueryExpression
 from sigma.conversion.state import ConversionState
 from sigma.rule import SigmaRule
 from sigma.conversion.base import TextQueryBackend
-from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, ConditionFieldEqualsValueExpression
+from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, \
+    ConditionFieldEqualsValueExpression, ConditionValueExpression
 from sigma.types import SigmaCompareExpression
 import sigma
 import re
@@ -184,28 +185,42 @@ class stixBackend(TextQueryBackend):
     def convert_condition_field_eq_val_str(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
             Union[str, DeferredQueryExpression]:
         within_not = state.processing_state.get("within_not", False)
-        field = cond.field
-        val = cond.value.to_plain()
-        val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
-        # contains case
-        if val.startswith(self.wildcard_single) and val.endswith(self.wildcard_single):
-            result = field + self.token_separator + self.like_token + self.token_separator + \
-                     self.str_quote + f'%{val_no_wc}%' + self.str_quote
-        # startswith case
-        elif val.endswith(self.wildcard_single) and not val.startswith(self.wildcard_single):
-            result = field + self.token_separator + self.like_token + self.token_separator + \
-                     self.str_quote + f'{val_no_wc}%' + self.str_quote
-        # endswith case
-        elif val.startswith(self.wildcard_single) and not val.endswith(self.wildcard_single):
-            result = field + self.token_separator + self.like_token + self.token_separator + \
-                     self.str_quote + f'%{val_no_wc}' + self.str_quote
-        # plain equals case
-        else:
-            if within_not:
-                result = field + self.not_eq_token + self.str_quote + val + self.str_quote
+        try:
+            field = cond.field
+            val = cond.value.to_plain()
+            val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
+            # contains case
+            if val.startswith(self.wildcard_single) and val.endswith(self.wildcard_single):
+                result = field + self.token_separator + self.like_token + self.token_separator + \
+                         self.str_quote + f'%{val_no_wc}%' + self.str_quote
+            # startswith case
+            elif val.endswith(self.wildcard_single) and not val.startswith(self.wildcard_single):
+                result = field + self.token_separator + self.like_token + self.token_separator + \
+                         self.str_quote + f'{val_no_wc}%' + self.str_quote
+            # endswith case
+            elif val.startswith(self.wildcard_single) and not val.endswith(self.wildcard_single):
+                result = field + self.token_separator + self.like_token + self.token_separator + \
+                         self.str_quote + f'%{val_no_wc}' + self.str_quote
+            # plain equals case
             else:
-                result = field + self.eq_token + self.str_quote + val + self.str_quote
-        return result
+                if within_not:
+                    result = field + self.not_eq_token + self.str_quote + val + self.str_quote
+                else:
+                    result = field + self.eq_token + self.str_quote + val + self.str_quote
+            return result
+        except TypeError:  # pragma: no cover
+            raise NotImplementedError("Field equals string value expressions are not supported by the backend")
+
+    def convert_condition_field_eq_val_num(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
+    Union[str, DeferredQueryExpression]:
+        """Conversion of field = number value expressions"""
+        within_not = state.processing_state.get("within_not", False)
+        try:
+            if within_not:
+                return self.escape_and_quote_field(cond.field) + self.not_eq_token + str(cond.value)
+            return self.escape_and_quote_field(cond.field) + self.eq_token + str(cond.value)
+        except TypeError:  # pragma: no cover
+            raise NotImplementedError("Field equals numeric value expressions are not supported by the backend.")
 
     def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
             Union[str, DeferredQueryExpression]:

@@ -40,6 +40,24 @@ def test_stix_minimal_not_expression(stix_backend: stixBackend):
     ) == ["[fieldA != 'valueA']"]
 
 
+def test_stix_minimal_not_int_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    fieldA: 1337
+                    fieldB: 42
+                    fieldC: 'w00t'
+                condition: not sel
+        """)
+    ) == ["[((fieldA != 1337) OR (fieldB != 42) OR (fieldC != 'w00t'))]"]
+
+
 def test_stix_minimal_not_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
