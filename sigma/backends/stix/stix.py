@@ -31,8 +31,9 @@ class stixBackend(TextQueryBackend):
     token_separator: str = " "  # separator inserted between all boolean operators
     or_token: ClassVar[str] = "OR"
     and_token: ClassVar[str] = "AND"
-    not_token: ClassVar[str] = " != "
+    not_token: ClassVar[str] = "NOT"
     eq_token: ClassVar[str] = " = "  # Token inserted between field and value (without separator)
+    not_eq_token = " != "
 
     # String output
     ## Fields
@@ -124,11 +125,13 @@ class stixBackend(TextQueryBackend):
 
     def convert_condition_and(self, cond: ConditionAND, state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of AND conditions."""
+        within_not = state.processing_state.get("within_not", False)
+        and_token = self.and_token if not within_not else self.or_token
         try:
-            if self.token_separator == self.and_token:   # don't repeat the same thing triple times if separator equals and token
-                joiner = self.and_token
+            if self.token_separator == and_token:   # don't repeat the same thing triple times if separator equals and token
+                joiner = and_token
             else:
-                joiner = self.token_separator + self.and_token + self.token_separator
+                joiner = self.token_separator + and_token + self.token_separator
 
             return joiner.join((
                 converted
@@ -143,11 +146,13 @@ class stixBackend(TextQueryBackend):
 
     def convert_condition_or(self, cond : ConditionOR, state : ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of OR conditions."""
+        within_not = state.processing_state.get("within_not", False)
+        or_token = self.or_token if not within_not else self.and_token
         try:
-            if self.token_separator == self.or_token:   # don't repeat the same thing triple times if separator equals or token
-                joiner = self.or_token
+            if self.token_separator == or_token:   # don't repeat the same thing triple times if separator equals or token
+                joiner = or_token
             else:
-                joiner = self.token_separator + self.or_token + self.token_separator
+                joiner = self.token_separator + or_token + self.token_separator
 
             return joiner.join((
                 converted
@@ -159,8 +164,26 @@ class stixBackend(TextQueryBackend):
         except TypeError:       # pragma: no cover
             raise NotImplementedError("Operator 'or' not supported by the backend")
 
+    def convert_condition_not(self, cond : ConditionNOT, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of NOT conditions."""
+        arg = cond.args[0]
+        state.processing_state['within_not'] = not(state.processing_state['within_not']) \
+            if 'within_not' in state.processing_state else True
+        try:
+            if arg.__class__ in self.precedence:        # group if AND or OR condition is negated
+                return self.convert_condition_group(arg, state)
+            else:
+                expr = self.convert_condition(arg, state)
+                if isinstance(expr, DeferredQueryExpression):      # negate deferred expression and pass it to parent
+                    return expr.negate()
+                else:                                             # convert negated expression to string
+                    return expr
+        except TypeError:       # pragma: no cover
+            raise NotImplementedError("Operator 'not' not supported by the backend")
+
     def convert_condition_field_eq_val_str(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
     Union[str, DeferredQueryExpression]:
+        within_not = state.processing_state.get("within_not", False)
         field = cond.field
         val = cond.value.to_plain()
         val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
@@ -178,7 +201,10 @@ class stixBackend(TextQueryBackend):
                      self.str_quote + f'%{val_no_wc}' + self.str_quote
         # plain equals case
         else:
-            result = field + self.eq_token + self.str_quote + val + self.str_quote
+            if within_not:
+                result = field + self.not_eq_token + self.str_quote + val + self.str_quote
+            else:
+                result = field + self.eq_token + self.str_quote + val + self.str_quote
         return result
 
     def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
@@ -189,7 +215,7 @@ class stixBackend(TextQueryBackend):
             regex=cond.value.regexp
         )
 
-    def finalize_query_default(self, rule: SigmaRule, query: str, index: int, state: ConversionState) -> Any:
+    def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
         # TODO: implement the per-query output for the output format stix here. Usually, the generated query is
         # embedded into a template, e.g. a JSON format with additional information from the Sigma rule.
         # TODO: proper type annotation.
