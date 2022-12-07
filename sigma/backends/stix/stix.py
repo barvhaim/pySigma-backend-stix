@@ -178,6 +178,7 @@ class stixBackend(TextQueryBackend):
                 if isinstance(expr, DeferredQueryExpression):  # negate deferred expression and pass it to parent
                     return expr.negate()
                 else:  # convert negated expression to string
+                    del state.processing_state['within_not']
                     return expr
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
@@ -212,7 +213,7 @@ class stixBackend(TextQueryBackend):
             raise NotImplementedError("Field equals string value expressions are not supported by the backend")
 
     def convert_condition_field_eq_val_num(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
-    Union[str, DeferredQueryExpression]:
+            Union[str, DeferredQueryExpression]:
         """Conversion of field = number value expressions"""
         within_not = state.processing_state.get("within_not", False)
         try:
