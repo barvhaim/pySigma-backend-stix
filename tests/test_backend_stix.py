@@ -2,12 +2,13 @@ import pytest
 from sigma.collection import SigmaCollection
 from sigma.backends.stix import stixBackend
 
+
 @pytest.fixture
 def stix_backend():
     return stixBackend()
 
 
-def test_stix_minimal_expression(stix_backend : stixBackend):
+def test_stix_minimal_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -23,7 +24,7 @@ def test_stix_minimal_expression(stix_backend : stixBackend):
     ) == ["[fieldA = 'valueA']"]
 
 
-def test_stix_minimal_not_expression(stix_backend : stixBackend):
+def test_stix_minimal_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -39,7 +40,7 @@ def test_stix_minimal_not_expression(stix_backend : stixBackend):
     ) == ["[fieldA != 'valueA']"]
 
 
-def test_stix_minimal_not_not_expression(stix_backend : stixBackend):
+def test_stix_minimal_not_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -55,7 +56,7 @@ def test_stix_minimal_not_not_expression(stix_backend : stixBackend):
     ) == ["[(fieldA = 'valueA')]"]
 
 
-def test_stix_and_expression(stix_backend : stixBackend):
+def test_stix_and_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -72,7 +73,7 @@ def test_stix_and_expression(stix_backend : stixBackend):
     ) == ["[(fieldA = 'valueA') AND (fieldB = 'valueB')]"]
 
 
-def test_stix_or_expression(stix_backend : stixBackend):
+def test_stix_or_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -90,7 +91,7 @@ def test_stix_or_expression(stix_backend : stixBackend):
     ) == ["[(fieldA = 'valueA') OR (fieldB = 'valueB')]"]
 
 
-def test_stix_and_or_expression(stix_backend : stixBackend):
+def test_stix_and_or_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -111,7 +112,7 @@ def test_stix_and_or_expression(stix_backend : stixBackend):
     ) == ["[((fieldA = 'valueA1') OR (fieldA = 'valueA2')) AND ((fieldB = 'valueB1') OR (fieldB = 'valueB2'))]"]
 
 
-def test_stix_or_and_expression(stix_backend : stixBackend):
+def test_stix_or_and_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -131,7 +132,7 @@ def test_stix_or_and_expression(stix_backend : stixBackend):
     ) == ["[((fieldA = 'valueA1') AND (fieldB = 'valueB1')) OR ((fieldA = 'valueA2') AND (fieldB = 'valueB2'))]"]
 
 
-def test_stix_in_expression(stix_backend : stixBackend):
+def test_stix_in_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -150,7 +151,7 @@ def test_stix_in_expression(stix_backend : stixBackend):
     ) == ["[(fieldA = 'valueA') OR (fieldA = 'valueB') OR (fieldA LIKE 'valueC%')]"]
 
 
-def test_stix_regex_query(stix_backend : stixBackend):
+def test_stix_regex_query(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -202,7 +203,7 @@ def test_stix_regex_query(stix_backend : stixBackend):
 # TODO: implement tests for all backend features that don't belong to the base class defaults, e.g. features that were
 # implemented with custom code, deferred expressions etc.
 
-def test_stix_and_not_expression(stix_backend : stixBackend):
+def test_stix_and_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -219,7 +220,7 @@ def test_stix_and_not_expression(stix_backend : stixBackend):
     ) == ["[((fieldA != 'valueA') OR (fieldB != 'valueB'))]"]
 
 
-def test_stix_or_not_expression(stix_backend : stixBackend):
+def test_stix_or_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
             title: Test
@@ -236,10 +237,7 @@ def test_stix_or_not_expression(stix_backend : stixBackend):
         """)
     ) == ["[((fieldA != 'valueA1') AND (fieldA != 'valueA2'))]"]
 
-
 # def test_stix_stix_output(stix_backend : stixBackend):
 #     """Test for output format stix."""
 #     # TODO: implement a test for the output format
 #     pass
-
-

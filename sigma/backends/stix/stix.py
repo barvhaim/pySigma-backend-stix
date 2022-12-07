@@ -128,7 +128,7 @@ class stixBackend(TextQueryBackend):
         within_not = state.processing_state.get("within_not", False)
         and_token = self.and_token if not within_not else self.or_token
         try:
-            if self.token_separator == and_token:   # don't repeat the same thing triple times if separator equals and token
+            if self.token_separator == and_token:  # don't repeat the same thing triple times if separator equals and token
                 joiner = and_token
             else:
                 joiner = self.token_separator + and_token + self.token_separator
@@ -138,18 +138,18 @@ class stixBackend(TextQueryBackend):
                 for converted in (
                 self.convert_condition_group(arg, state)
                 for arg in cond.args
-                )
+            )
                 if converted is not None and not isinstance(converted, DeferredQueryExpression)
             ))
-        except TypeError:       # pragma: no cover
+        except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'and' not supported by the backend")
 
-    def convert_condition_or(self, cond : ConditionOR, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+    def convert_condition_or(self, cond: ConditionOR, state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of OR conditions."""
         within_not = state.processing_state.get("within_not", False)
         or_token = self.or_token if not within_not else self.and_token
         try:
-            if self.token_separator == or_token:   # don't repeat the same thing triple times if separator equals or token
+            if self.token_separator == or_token:  # don't repeat the same thing triple times if separator equals or token
                 joiner = or_token
             else:
                 joiner = self.token_separator + or_token + self.token_separator
@@ -158,31 +158,31 @@ class stixBackend(TextQueryBackend):
                 converted
                 for converted in (
                 self.convert_condition_group(arg, state) for arg in cond.args
-                )
+            )
                 if converted is not None and not isinstance(converted, DeferredQueryExpression)
             ))
-        except TypeError:       # pragma: no cover
+        except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'or' not supported by the backend")
 
-    def convert_condition_not(self, cond : ConditionNOT, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+    def convert_condition_not(self, cond: ConditionNOT, state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of NOT conditions."""
         arg = cond.args[0]
-        state.processing_state['within_not'] = not(state.processing_state['within_not']) \
+        state.processing_state['within_not'] = not (state.processing_state['within_not']) \
             if 'within_not' in state.processing_state else True
         try:
-            if arg.__class__ in self.precedence:        # group if AND or OR condition is negated
+            if arg.__class__ in self.precedence:  # group if AND or OR condition is negated
                 return self.convert_condition_group(arg, state)
             else:
                 expr = self.convert_condition(arg, state)
-                if isinstance(expr, DeferredQueryExpression):      # negate deferred expression and pass it to parent
+                if isinstance(expr, DeferredQueryExpression):  # negate deferred expression and pass it to parent
                     return expr.negate()
-                else:                                             # convert negated expression to string
+                else:  # convert negated expression to string
                     return expr
-        except TypeError:       # pragma: no cover
+        except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")
 
     def convert_condition_field_eq_val_str(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
-    Union[str, DeferredQueryExpression]:
+            Union[str, DeferredQueryExpression]:
         within_not = state.processing_state.get("within_not", False)
         field = cond.field
         val = cond.value.to_plain()
@@ -208,7 +208,7 @@ class stixBackend(TextQueryBackend):
         return result
 
     def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
-    Union[str, DeferredQueryExpression]:
+            Union[str, DeferredQueryExpression]:
         """Conversion of field matches regular expression value expressions."""
         return self.re_expression.format(
             field=cond.field,
