@@ -33,8 +33,8 @@ class stixBackend(TextQueryBackend):
     or_token: ClassVar[str] = "OR"
     and_token: ClassVar[str] = "AND"
     not_token: ClassVar[str] = "NOT"
-    eq_token: ClassVar[str] = " = "  # Token inserted between field and value (without separator)
-    not_eq_token = " != "
+    eq_token: ClassVar[str] = " = "
+    not_eq_token: ClassVar[str] = " != "
 
     # String output
     ## Fields
@@ -65,7 +65,8 @@ class stixBackend(TextQueryBackend):
 
     # Regular expressions
     re_expression: ClassVar[
-        str] = "{field} MATCHES '{regex}'"  # Regular expression query as format string with placeholders {field} and {regex}
+       str] = "{field} MATCHES '{regex}'"  # Regular expression query as format string with placeholders {field} and {regex}
+    re_not_expression: ClassVar[str] = "{field} NOT MATCHES '{regex}'"
     re_escape_char: ClassVar[str] = "\\"  # Character used for escaping in regular expressions
     re_escape: ClassVar[Tuple[str]] = ()  # List of strings that are escaped
 
@@ -186,28 +187,29 @@ class stixBackend(TextQueryBackend):
     def convert_condition_field_eq_val_str(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
             Union[str, DeferredQueryExpression]:
         within_not = state.processing_state.get("within_not", False)
+        eq_token = self.not_eq_token if within_not else self.eq_token
+        like_token = f'{self.not_token} {self.like_token}' if within_not else self.like_token
         try:
             field = cond.field
+            if ":" not in field:
+                raise TypeError("Backend does not support rules with unmapped values")
             val = cond.value.to_plain()
             val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
             # contains case
             if val.startswith(self.wildcard_single) and val.endswith(self.wildcard_single):
-                result = field + self.token_separator + self.like_token + self.token_separator + \
+                result = field + self.token_separator + like_token + self.token_separator + \
                          self.str_quote + f'%{val_no_wc}%' + self.str_quote
             # startswith case
             elif val.endswith(self.wildcard_single) and not val.startswith(self.wildcard_single):
-                result = field + self.token_separator + self.like_token + self.token_separator + \
+                result = field + self.token_separator + like_token + self.token_separator + \
                          self.str_quote + f'{val_no_wc}%' + self.str_quote
             # endswith case
             elif val.startswith(self.wildcard_single) and not val.endswith(self.wildcard_single):
-                result = field + self.token_separator + self.like_token + self.token_separator + \
+                result = field + self.token_separator + like_token + self.token_separator + \
                          self.str_quote + f'%{val_no_wc}' + self.str_quote
             # plain equals case
             else:
-                if within_not:
-                    result = field + self.not_eq_token + self.str_quote + val + self.str_quote
-                else:
-                    result = field + self.eq_token + self.str_quote + val + self.str_quote
+                result = field + eq_token + self.str_quote + val + self.str_quote
             return result
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Field equals string value expressions are not supported by the backend")
@@ -223,13 +225,25 @@ class stixBackend(TextQueryBackend):
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Field equals numeric value expressions are not supported by the backend.")
 
-    def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
-            Union[str, DeferredQueryExpression]:
+    def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression,
+                                          state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of field matches regular expression value expressions."""
-        return self.re_expression.format(
-            field=cond.field,
-            regex=cond.value.regexp
-        )
+        try:
+            within_not = state.processing_state.get("within_not", False)
+            field = cond.field
+            value = cond.value.regexp
+            if within_not:
+                return self.re_not_expression.format(
+                    field=field,
+                    regex=value
+                )
+            else:
+                return self.re_expression.format(
+                    field=field,
+                    regex=value
+                )
+        except TypeError:  # pragma: no cover
+            raise NotImplementedError("Reg expressions are not supported by the backend.")
 
     def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
         # TODO: implement the per-query output for the output format stix here. Usually, the generated query is

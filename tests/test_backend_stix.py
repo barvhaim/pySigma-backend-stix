@@ -18,10 +18,10 @@ def test_stix_minimal_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
+                    field:A: valueA
                 condition: sel
         """)
-    ) == ["[fieldA = 'valueA']"]
+    ) == ["[field:A = 'valueA']"]
 
 
 def test_stix_minimal_not_expression(stix_backend: stixBackend):
@@ -34,10 +34,10 @@ def test_stix_minimal_not_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
+                    field:a: valueA
                 condition: not sel
         """)
-    ) == ["[fieldA != 'valueA']"]
+    ) == ["[field:a != 'valueA']"]
 
 
 def test_stix_minimal_not_int_expression(stix_backend: stixBackend):
@@ -50,12 +50,12 @@ def test_stix_minimal_not_int_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: 1337
-                    fieldB: 42
-                    fieldC: 'w00t'
+                    field:a: 1337
+                    field:b: 42
+                    field:c: 'w00t'
                 condition: not sel
         """)
-    ) == ["[((fieldA != 1337) OR (fieldB != 42) OR (fieldC != 'w00t'))]"]
+    ) == ["[((field:a != 1337) OR (field:b != 42) OR (field:c != 'w00t'))]"]
 
 
 def test_stix_minimal_not_not_expression(stix_backend: stixBackend):
@@ -68,10 +68,10 @@ def test_stix_minimal_not_not_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
+                    field:a: valueA
                 condition: not (not sel)
         """)
-    ) == ["[(fieldA = 'valueA')]"]
+    ) == ["[(field:a = 'valueA')]"]
 
 
 def test_stix_minimal_not_two_sel_expression(stix_backend: stixBackend):
@@ -84,10 +84,10 @@ def test_stix_minimal_not_two_sel_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
+                    field:a: valueA
                 condition: (not sel) and sel
         """)
-    ) == ["[(fieldA != 'valueA') AND (fieldA = 'valueA')]"]
+    ) == ["[(field:a != 'valueA') AND (field:a = 'valueA')]"]
 
 
 def test_stix_and_expression(stix_backend: stixBackend):
@@ -100,11 +100,11 @@ def test_stix_and_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
-                    fieldB: valueB
+                    field:a: valueA
+                    field:b: valueB
                 condition: sel
         """)
-    ) == ["[(fieldA = 'valueA') AND (fieldB = 'valueB')]"]
+    ) == ["[(field:a = 'valueA') AND (field:b = 'valueB')]"]
 
 
 def test_stix_or_expression(stix_backend: stixBackend):
@@ -117,12 +117,12 @@ def test_stix_or_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel1:
-                    fieldA: valueA
+                    field:a: valueA
                 sel2:
-                    fieldB: valueB
+                    field:b: valueB
                 condition: 1 of sel*
         """)
-    ) == ["[(fieldA = 'valueA') OR (fieldB = 'valueB')]"]
+    ) == ["[(field:a = 'valueA') OR (field:b = 'valueB')]"]
 
 
 def test_stix_and_or_expression(stix_backend: stixBackend):
@@ -135,15 +135,15 @@ def test_stix_and_or_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA:
+                    field:a:
                         - valueA1
                         - valueA2
-                    fieldB:
+                    field:b:
                         - valueB1
                         - valueB2
                 condition: sel
         """)
-    ) == ["[((fieldA = 'valueA1') OR (fieldA = 'valueA2')) AND ((fieldB = 'valueB1') OR (fieldB = 'valueB2'))]"]
+    ) == ["[((field:a = 'valueA1') OR (field:a = 'valueA2')) AND ((field:b = 'valueB1') OR (field:b = 'valueB2'))]"]
 
 
 def test_stix_or_and_expression(stix_backend: stixBackend):
@@ -156,14 +156,14 @@ def test_stix_or_and_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel1:
-                    fieldA: valueA1
-                    fieldB: valueB1
+                    field:a: valueA1
+                    field:b: valueB1
                 sel2:
-                    fieldA: valueA2
-                    fieldB: valueB2
+                    field:a: valueA2
+                    field:b: valueB2
                 condition: 1 of sel*
         """)
-    ) == ["[((fieldA = 'valueA1') AND (fieldB = 'valueB1')) OR ((fieldA = 'valueA2') AND (fieldB = 'valueB2'))]"]
+    ) == ["[((field:a = 'valueA1') AND (field:b = 'valueB1')) OR ((field:a = 'valueA2') AND (field:b = 'valueB2'))]"]
 
 
 def test_stix_in_expression(stix_backend: stixBackend):
@@ -176,13 +176,13 @@ def test_stix_in_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA:
+                    field:a:
                         - valueA
                         - valueB
                         - valueC*
                 condition: sel
         """)
-    ) == ["[(fieldA = 'valueA') OR (fieldA = 'valueB') OR (fieldA LIKE 'valueC%')]"]
+    ) == ["[(field:a = 'valueA') OR (field:a = 'valueB') OR (field:a LIKE 'valueC%')]"]
 
 
 def test_stix_regex_query(stix_backend: stixBackend):
@@ -195,11 +195,63 @@ def test_stix_regex_query(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA|re: '.+\\@example\\.com$'
-                    fieldB: foo
+                    file:name|re: '\$PSHome\[\s*\d{1,3}\s*\]\s*\+\s*\$PSHome\['
                 condition: sel
         """)
-    ) == ["[(fieldA MATCHES '.+\\@example\\.com$') AND (fieldB = 'foo')]"]
+    ) == ["[file:name MATCHES '\\$PSHome\\[\\s*\\d{1,3}\\s*\\]\\s*\\+\\s*\\$PSHome\\[']"]
+
+
+def test_stix_not_regex_query(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    file:name|re: 'foo'
+                condition: not sel
+        """)
+    ) == ["[file:name NOT MATCHES 'foo']"]
+
+def test_stix_like_query(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    file:name: 
+                        - '*.exe'
+                        - 'foo*'
+                        - '*foo.bar*'
+                condition: sel
+        """)
+    ) == ["[(file:name LIKE '%.exe') OR (file:name LIKE 'foo%') OR (file:name LIKE '%foo.bar%')]"]
+
+
+def test_stix_not_like_query(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    file:name: 
+                        - '*.exe'
+                        - 'foo*'
+                        - '*foo.bar*'
+                condition: not sel
+        """)
+    ) == ["[((file:name NOT LIKE '%.exe') AND (file:name NOT LIKE 'foo%') AND (file:name NOT LIKE '%foo.bar%'))]"]
 
 
 # def test_stix_cidr_query(stix_backend : stixBackend):
@@ -247,11 +299,11 @@ def test_stix_and_not_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: valueA
-                    fieldB: valueB
+                    field:a: valueA
+                    field:b: valueB
                 condition: not sel
         """)
-    ) == ["[((fieldA != 'valueA') OR (fieldB != 'valueB'))]"]
+    ) == ["[((field:a != 'valueA') OR (field:b != 'valueB'))]"]
 
 
 def test_stix_or_not_expression(stix_backend: stixBackend):
@@ -264,14 +316,31 @@ def test_stix_or_not_expression(stix_backend: stixBackend):
                 product: test_product
             detection:
                 sel:
-                    fieldA: 
+                    field:a: 
                         - valueA1
                         - valueA2
                 condition: not sel
         """)
-    ) == ["[((fieldA != 'valueA1') AND (fieldA != 'valueA2'))]"]
+    ) == ["[((field:a != 'valueA1') AND (field:a != 'valueA2'))]"]
 
 # def test_stix_stix_output(stix_backend : stixBackend):
 #     """Test for output format stix."""
 #     # TODO: implement a test for the output format
 #     pass
+
+
+# TODO - asset type error?
+# def test_stix_minimal_unmapped_expression(stix_backend: stixBackend):
+#     assert stix_backend.convert(
+#         SigmaCollection.from_yaml("""
+#         title: Test
+#         status: test
+#         logsource:
+#             category: test_category
+#             product: test_product
+#         detection:
+#             sel:
+#                 fieldA: valueA
+#             condition: sel
+#     """)
+#     ) == ["[fieldA = 'valueA']"]

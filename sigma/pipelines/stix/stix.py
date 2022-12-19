@@ -1,8 +1,4 @@
-from sigma.pipelines.common import logsource_windows, windows_logsource_mapping
-from sigma.processing.transformations import AddConditionTransformation, FieldMappingTransformation, \
-    DetectionItemFailureTransformation, RuleFailureTransformation, SetStateTransformation
-from sigma.processing.conditions import LogsourceCondition, IncludeFieldCondition, ExcludeFieldCondition, \
-    RuleProcessingItemAppliedCondition
+from sigma.processing.transformations import FieldMappingTransformation
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
 
 stix_2_0_mapping = {
@@ -546,6 +542,20 @@ stix_shifter_mapping = {
 }
 
 
+def stix_2_0() -> ProcessingPipeline:
+    """This is a pipeline that maps fields to the STIX 2.0 format."""
+    return ProcessingPipeline(
+        name="stix 2.0",
+        priority=100,
+        items=[
+            ProcessingItem(
+                identifier="stix_2_0",
+                transformation=FieldMappingTransformation(stix_2_0_mapping),
+            ),
+        ],
+    )
+
+
 def stix_shifter() -> ProcessingPipeline:
     return ProcessingPipeline(
         name="stix_shifter",
@@ -557,41 +567,3 @@ def stix_shifter() -> ProcessingPipeline:
             )
         ]
     )
-
-
-def stix_2_0() -> ProcessingPipeline:
-    """This is a pipeline that maps fields to the STIX 2.0 format."""
-    return ProcessingPipeline(
-        name="stix 2.0",
-        priority=100,
-        items=[
-            ProcessingItem(
-                identifier="stix_2_0",
-                transformation=FieldMappingTransformation(stix_2_0_mapping),
-            )
-        ]
-    )
-
-
-# def stix_example() -> ProcessingPipeline:  # Processing pipelines should be defined as functions that return a ProcessingPipeline object.
-#     return ProcessingPipeline(
-#         name="stix example pipeline",
-#         priority=20,  # The priority defines the order pipelines are applied. See documentation for common values.
-#         items=[
-#                   ProcessingItem(  # This is an example for processing items generated from the mapping above.
-#                       identifier=f"stix_windows_{service}",
-#                       transformation=AddConditionTransformation({"source": source}),
-#                       rule_conditions=[logsource_windows(service)],
-#                   )
-#                   for service, source in windows_logsource_mapping.items()
-#               ] + [
-#                   ProcessingItem(  # Field mappings
-#                       identifier="stix_field_mapping",
-#                       transformation=FieldMappingTransformation({
-#                           "EventID": "event_id",
-#                           "filename": "file:name",
-#                           "filesize": "file:size",
-#                       })
-#                   )
-#               ],
-#     )
