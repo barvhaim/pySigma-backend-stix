@@ -363,7 +363,7 @@ def test_stix_or_not_expression(stix_backend: stixBackend):
 #     pass
 
 
-def test_stix_minimal_unmapped_expression_exception(stix_backend: stixBackend):
+def test_stix_minimal_int_unmapped_expression_exception(stix_backend: stixBackend):
     with pytest.raises(NotImplementedError):
         stix_backend.convert(
             SigmaCollection.from_yaml("""
@@ -374,7 +374,24 @@ def test_stix_minimal_unmapped_expression_exception(stix_backend: stixBackend):
                     product: test_product
                 detection:
                     sel:
-                        fieldA: valueA
+                        EventID: 1234
+                    condition: sel
+            """)
+        )
+
+
+def test_stix_minimal_str_unmapped_expression_exception(stix_backend: stixBackend):
+    with pytest.raises(NotImplementedError):
+        stix_backend.convert(
+            SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: test_category
+                    product: test_product
+                detection:
+                    sel:
+                        EventID: valueA
                     condition: sel
             """)
         )

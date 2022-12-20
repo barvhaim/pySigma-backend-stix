@@ -125,6 +125,12 @@ class stixBackend(TextQueryBackend):
                  collect_errors: bool = False, **kwargs):
         super().__init__(processing_pipeline, collect_errors, **kwargs)
 
+    @staticmethod
+    def _check_is_field_valid(field: str):
+        """Validate field name."""
+        if ":" not in field:
+            raise NotImplementedError("Backend does not support rules with unmapped values")
+
     def convert_condition_and(self, cond: ConditionAND, state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of AND conditions."""
         within_not = state.processing_state.get("within_not", False)
@@ -186,13 +192,12 @@ class stixBackend(TextQueryBackend):
 
     def convert_condition_field_eq_val_str(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
             Union[str, DeferredQueryExpression]:
+        self._check_is_field_valid(cond.field)
         within_not = state.processing_state.get("within_not", False)
         eq_token = self.not_eq_token if within_not else self.eq_token
         like_token = f'{self.not_token} {self.like_token}' if within_not else self.like_token
         try:
             field = cond.field
-            if ":" not in field:
-                raise TypeError("Backend does not support rules with unmapped values")
             val = cond.value.to_plain()
             val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
             # contains case
@@ -217,6 +222,7 @@ class stixBackend(TextQueryBackend):
     def convert_condition_field_eq_val_num(self, cond: ConditionFieldEqualsValueExpression, state: ConversionState) -> \
             Union[str, DeferredQueryExpression]:
         """Conversion of field = number value expressions"""
+        self._check_is_field_valid(cond.field)
         within_not = state.processing_state.get("within_not", False)
         try:
             if within_not:
@@ -228,14 +234,16 @@ class stixBackend(TextQueryBackend):
     def convert_condition_field_eq_val_bool(self, cond : ConditionFieldEqualsValueExpression,
                                             state : ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of field = bool value expressions"""
+        self._check_is_field_valid(cond.field)
         cond.value = SigmaString(str(cond.value))
         return self.convert_condition_field_eq_val_str(cond, state)
 
     def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression,
                                           state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of field matches regular expression value expressions."""
+        self._check_is_field_valid(cond.field)
+        within_not = state.processing_state.get("within_not", False)
         try:
-            within_not = state.processing_state.get("within_not", False)
             field = cond.field
             value = cond.value.regexp
             if within_not:
