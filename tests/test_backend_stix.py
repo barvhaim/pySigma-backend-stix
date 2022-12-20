@@ -24,6 +24,38 @@ def test_stix_minimal_expression(stix_backend: stixBackend):
     ) == ["[field:A = 'valueA']"]
 
 
+def test_stix_minimal_int_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field:A: 1234
+                condition: sel
+        """)
+    ) == ["[field:A = 1234]"]
+
+
+def test_stix_minimal_bool_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field:A: True
+                condition: sel
+        """)
+    ) == ["[field:A = 'True']"]
+
+
 def test_stix_minimal_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
@@ -216,6 +248,7 @@ def test_stix_not_regex_query(stix_backend: stixBackend):
         """)
     ) == ["[file:name NOT MATCHES 'foo']"]
 
+
 def test_stix_like_query(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
@@ -323,24 +356,42 @@ def test_stix_or_not_expression(stix_backend: stixBackend):
         """)
     ) == ["[((field:a != 'valueA1') AND (field:a != 'valueA2'))]"]
 
+
 # def test_stix_stix_output(stix_backend : stixBackend):
 #     """Test for output format stix."""
 #     # TODO: implement a test for the output format
 #     pass
 
 
-# TODO - asset type error?
-# def test_stix_minimal_unmapped_expression(stix_backend: stixBackend):
-#     assert stix_backend.convert(
-#         SigmaCollection.from_yaml("""
-#         title: Test
-#         status: test
-#         logsource:
-#             category: test_category
-#             product: test_product
-#         detection:
-#             sel:
-#                 fieldA: valueA
-#             condition: sel
-#     """)
-#     ) == ["[fieldA = 'valueA']"]
+def test_stix_minimal_unmapped_expression_exception(stix_backend: stixBackend):
+    with pytest.raises(NotImplementedError):
+        stix_backend.convert(
+            SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: test_category
+                    product: test_product
+                detection:
+                    sel:
+                        fieldA: valueA
+                    condition: sel
+            """)
+        )
+
+
+def test_stix_keywords_expression_exception(stix_backend: stixBackend):
+    with pytest.raises(NotImplementedError):
+        stix_backend.convert(
+            SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: test_category
+                    product: test_product
+                detection:
+                    keywords: 
+                        - valueA1
+                    condition: keywords
+            """)
+        )

@@ -4,7 +4,7 @@ from sigma.rule import SigmaRule
 from sigma.conversion.base import TextQueryBackend
 from sigma.conditions import ConditionItem, ConditionAND, ConditionOR, ConditionNOT, \
     ConditionFieldEqualsValueExpression, ConditionValueExpression
-from sigma.types import SigmaCompareExpression
+from sigma.types import SigmaCompareExpression, SigmaString
 import sigma
 import re
 from typing import ClassVar, Dict, Tuple, Pattern, List, Any, Optional, Union
@@ -106,12 +106,12 @@ class stixBackend(TextQueryBackend):
     list_separator: ClassVar[str] = ", "  # List element separator
 
     # Value not bound to a field
-    unbound_value_str_expression: ClassVar[
-        str] = "'{value}'"  # Expression for string value not bound to a field as format string with placeholder {value}
-    unbound_value_num_expression: ClassVar[
-        str] = '{value}'  # Expression for number value not bound to a field as format string with placeholder {value}
-    unbound_value_re_expression: ClassVar[
-        str] = '{value}'  # Expression for regular expression not bound to a field as format string with placeholder {value}
+    # unbound_value_str_expression: ClassVar[
+    #     str] = "'{value}'"  # Expression for string value not bound to a field as format string with placeholder {value}
+    # unbound_value_num_expression: ClassVar[
+    #     str] = '{value}'  # Expression for number value not bound to a field as format string with placeholder {value}
+    # unbound_value_re_expression: ClassVar[
+    #     str] = '{value}'  # Expression for regular expression not bound to a field as format string with placeholder {value}
 
     # Query finalization: appending and concatenating deferred query part
     deferred_start: ClassVar[str] = ""  # String used as separator between main query and deferred parts
@@ -225,6 +225,12 @@ class stixBackend(TextQueryBackend):
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Field equals numeric value expressions are not supported by the backend.")
 
+    def convert_condition_field_eq_val_bool(self, cond : ConditionFieldEqualsValueExpression,
+                                            state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of field = bool value expressions"""
+        cond.value = SigmaString(str(cond.value))
+        return self.convert_condition_field_eq_val_str(cond, state)
+
     def convert_condition_field_eq_val_re(self, cond: ConditionFieldEqualsValueExpression,
                                           state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of field matches regular expression value expressions."""
@@ -244,6 +250,18 @@ class stixBackend(TextQueryBackend):
                 )
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Reg expressions are not supported by the backend.")
+
+    def convert_condition_val_str(self, cond : ConditionValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of value-only strings."""
+        raise NotImplementedError("Value-only strings are not supported by the backend.")
+
+    def convert_condition_val_num(self, cond : ConditionValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of value-only numbers."""
+        raise NotImplementedError("Value-only strings are not supported by the backend.")
+
+    def convert_condition_val_re(self, cond : ConditionValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
+        """Conversion of value-only regular expressions."""
+        raise NotImplementedError("Value-only strings are not supported by the backend.")
 
     def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
         # TODO: implement the per-query output for the output format stix here. Usually, the generated query is
