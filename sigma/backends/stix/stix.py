@@ -69,13 +69,6 @@ class stixBackend(TextQueryBackend):
     re_escape_char: ClassVar[str] = "\\"  # Character used for escaping in regular expressions
     re_escape: ClassVar[Tuple[str]] = ()  # List of strings that are escaped
 
-    # cidr expressions
-    cidr_wildcard: ClassVar[str] = "*"  # Character used as single wildcard
-    cidr_expression: ClassVar[
-        str] = "cidrmatch({field}, {value})"  # CIDR expression query as format string with placeholders {field} = {value}
-    cidr_in_list_expression: ClassVar[
-        str] = "{field} in ({value})"  # CIDR expression query as format string with placeholders {field} = in({list})
-
     # Numeric comparison operators
     compare_op_expression: ClassVar[
         str] = "{field} {operator} {value}"  # Compare operation query as format string with placeholders {field}, {operator} and {value}
@@ -253,6 +246,11 @@ class stixBackend(TextQueryBackend):
                 )
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Reg expressions are not supported by the backend.")
+
+    def convert_condition_field_eq_val_null(self, cond : ConditionFieldEqualsValueExpression, state : ConversionState)\
+            -> Union[str, DeferredQueryExpression]:
+        """Conversion of field is null expression value expressions"""
+        raise NotImplementedError("Null expressions are not supported by the backend.")
 
     def convert_condition_val_str(self, cond : ConditionValueExpression, state : ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of value-only strings."""

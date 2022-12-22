@@ -335,40 +335,21 @@ def test_stix_not_like_query(stix_backend: stixBackend):
     ) == ["[((file:name NOT LIKE '%.exe') AND (file:name NOT LIKE 'foo%') AND (file:name NOT LIKE '%foo.bar%'))]"]
 
 
-# def test_stix_cidr_query(stix_backend : stixBackend):
-#     assert stix_backend.convert(
-#         SigmaCollection.from_yaml("""
-#             title: Test
-#             status: test
-#             logsource:
-#                 category: test_category
-#                 product: test_product
-#             detection:
-#                 sel:
-#                     field|cidr: 192.168.0.0/16
-#                 condition: sel
-#         """)
-#     ) == ['<insert expected result here>']
+def test_stix_cidr_query(stix_backend : stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    ipv4-addr:value|cidr: 192.168.0.0/24
+                condition: sel
+        """)
+    ) == ["[(ipv4-addr:value LIKE '192.168.0.%')]"]
 
-
-# def test_stix_field_name_with_whitespace(stix_backend : stixBackend):
-#     assert stix_backend.convert(
-#         SigmaCollection.from_yaml("""
-#             title: Test
-#             status: test
-#             logsource:
-#                 category: test_category
-#                 product: test_product
-#             detection:
-#                 sel:
-#                     field name: value
-#                 condition: sel
-#         """)
-#     ) == ['<insert expected result here>']
-
-
-# TODO: implement tests for all backend features that don't belong to the base class defaults, e.g. features that were
-# implemented with custom code, deferred expressions etc.
 
 def test_stix_and_not_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
@@ -405,10 +386,21 @@ def test_stix_or_not_expression(stix_backend: stixBackend):
     ) == ["[((field:a != 'valueA1') AND (field:a != 'valueA2'))]"]
 
 
-# def test_stix_stix_output(stix_backend : stixBackend):
-#     """Test for output format stix."""
-#     # TODO: implement a test for the output format
-#     pass
+def test_stix_null_expression(stix_backend: stixBackend):
+    with pytest.raises(NotImplementedError):
+        stix_backend.convert(
+            SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: test_category
+                    product: test_product
+                detection:
+                    sel:
+                        field:A: null
+                    condition: sel
+            """)
+        )
 
 
 def test_stix_minimal_int_unmapped_expression_exception(stix_backend: stixBackend):
@@ -440,6 +432,23 @@ def test_stix_minimal_str_unmapped_expression_exception(stix_backend: stixBacken
                 detection:
                     sel:
                         EventID: valueA
+                    condition: sel
+            """)
+        )
+
+
+def test_stix_minimal_str_whitespace_unmapped_expression_exception(stix_backend: stixBackend):
+    with pytest.raises(NotImplementedError):
+        stix_backend.convert(
+            SigmaCollection.from_yaml("""
+                title: Test
+                status: test
+                logsource:
+                    category: test_category
+                    product: test_product
+                detection:
+                    sel:
+                        field name: valueA
                     condition: sel
             """)
         )
