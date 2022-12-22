@@ -12,7 +12,6 @@ from typing import ClassVar, Dict, Tuple, Pattern, List, Any, Optional, Union
 
 class stixBackend(TextQueryBackend):
     """stix backend."""
-    # TODO: change the token definitions according to the syntax. Delete these not supported by your backend.
     # See the pySigma documentation for further infromation:
     # https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html
 
@@ -105,20 +104,11 @@ class stixBackend(TextQueryBackend):
         str] = "contains-all"  # Operator used to convert AND into in-expressions. Must be set if convert_and_as_in is set
     list_separator: ClassVar[str] = ", "  # List element separator
 
-    # Value not bound to a field
-    # unbound_value_str_expression: ClassVar[
-    #     str] = "'{value}'"  # Expression for string value not bound to a field as format string with placeholder {value}
-    # unbound_value_num_expression: ClassVar[
-    #     str] = '{value}'  # Expression for number value not bound to a field as format string with placeholder {value}
-    # unbound_value_re_expression: ClassVar[
-    #     str] = '{value}'  # Expression for regular expression not bound to a field as format string with placeholder {value}
-
     # Query finalization: appending and concatenating deferred query part
     deferred_start: ClassVar[str] = ""  # String used as separator between main query and deferred parts
     deferred_separator: ClassVar[str] = ""  # String used to join multiple deferred query parts
     deferred_only_query: ClassVar[str] = ""  # String used as query if final query only contains deferred expression
 
-    # TODO: implement custom methods for query elements not covered by the default backend base.
     # Documentation: https://sigmahq-pysigma.readthedocs.io/en/latest/Backends.html
 
     def __init__(self, processing_pipeline: Optional["sigma.processing.pipeline.ProcessingPipeline"] = None,
@@ -130,6 +120,11 @@ class stixBackend(TextQueryBackend):
         """Validate field name."""
         if ":" not in field:
             raise NotImplementedError("Backend does not support rules with unmapped values")
+
+    @staticmethod
+    def _escape_str_value(value: str) -> str:
+        """Escape value string."""
+        return value.replace("\\", "\\\\").replace("'", "\\'")
 
     def convert_condition_and(self, cond: ConditionAND, state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of AND conditions."""
@@ -198,7 +193,7 @@ class stixBackend(TextQueryBackend):
         like_token = f'{self.not_token} {self.like_token}' if within_not else self.like_token
         try:
             field = cond.field
-            val = cond.value.to_plain()
+            val = self._escape_str_value(cond.value.to_plain())
             val_no_wc = val.rstrip(self.wildcard_multi).lstrip(self.wildcard_multi)
             # contains case
             if val.startswith(self.wildcard_single) and val.endswith(self.wildcard_single):
@@ -245,7 +240,7 @@ class stixBackend(TextQueryBackend):
         within_not = state.processing_state.get("within_not", False)
         try:
             field = cond.field
-            value = cond.value.regexp
+            value = self._escape_str_value(cond.value.regexp)
             if within_not:
                 return self.re_not_expression.format(
                     field=field,
@@ -272,19 +267,7 @@ class stixBackend(TextQueryBackend):
         raise NotImplementedError("Value-only strings are not supported by the backend.")
 
     def finalize_query_default(self, rule: SigmaRule, query: Any, index: int, state: ConversionState) -> Any:
-        # TODO: implement the per-query output for the output format stix here. Usually, the generated query is
-        # embedded into a template, e.g. a JSON format with additional information from the Sigma rule.
-        # TODO: proper type annotation.
-        return "[" + query + "]"
+        return f'[{query}]'
 
     def finalize_output_stix(self, queries: List[str]) -> Any:
-        # TODO: implement the output finalization for all generated queries for the format stix here. Usually,
-        # the single generated queries are embedded into a structure, e.g. some JSON or XML that can be imported into
-        # the SIEM.
-        # TODO: proper type annotation. Sigma CLI supports:
-        # - str: output as is.
-        # - bytes: output in file only (e.g. if a zip package is output).
-        # - dict: output serialized as JSON.
-        # - list of str: output each item as is separated by two newlines.
-        # - list of dict: serialize each item as JSON and output all separated by newlines.
         return "\n".join(queries)

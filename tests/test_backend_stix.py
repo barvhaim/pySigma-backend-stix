@@ -40,6 +40,54 @@ def test_stix_minimal_int_expression(stix_backend: stixBackend):
     ) == ["[field:A = 1234]"]
 
 
+def test_stix_minimal_escaping_1_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field:A: '/etc/passwd'
+                condition: sel
+        """)
+    ) == ["[field:A = '/etc/passwd']"]
+
+
+def test_stix_minimal_escaping_2_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    file:name: "'x:0:'"
+                condition: sel
+        """)
+    ) == ["[file:name = '\\'x:0:\\'']"]
+
+
+def test_stix_minimal_escaping_3_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    file:name: 'C:\Windows\system32\DllHost.exe'
+                condition: sel
+        """)
+    ) == ["[file:name = 'C:\\\\Windows\\\\system32\\\\DllHost.exe']"]
+
+
 def test_stix_minimal_bool_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
@@ -230,7 +278,7 @@ def test_stix_regex_query(stix_backend: stixBackend):
                     file:name|re: '\$PSHome\[\s*\d{1,3}\s*\]\s*\+\s*\$PSHome\['
                 condition: sel
         """)
-    ) == ["[file:name MATCHES '\\$PSHome\\[\\s*\\d{1,3}\\s*\\]\\s*\\+\\s*\\$PSHome\\[']"]
+    ) == ["[file:name MATCHES '\\\\$PSHome\\\\[\\\\s*\\\\d{1,3}\\\\s*\\\\]\\\\s*\\\\+\\\\s*\\\\$PSHome\\\\[']"]
 
 
 def test_stix_not_regex_query(stix_backend: stixBackend):
