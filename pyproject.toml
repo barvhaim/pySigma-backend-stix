@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pySigma-backend-stix"
-version = "0.1.4"
+version = "0.1.5"
 description = "STIX language backend for pySigma convertor"
 authors = ["Cyber-center of Excellence <barha@il.ibm.com>"]
 license = "MIT"

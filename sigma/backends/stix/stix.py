@@ -109,6 +109,11 @@ class stixBackend(TextQueryBackend):
         super().__init__(processing_pipeline, collect_errors, **kwargs)
 
     @staticmethod
+    def _toggle_within_not(state: ConversionState):
+        state.processing_state['within_not'] = not (state.processing_state['within_not']) \
+            if 'within_not' in state.processing_state else True
+
+    @staticmethod
     def _check_is_field_valid(field: str):
         """Validate field name."""
         if ":" not in field:
@@ -163,17 +168,18 @@ class stixBackend(TextQueryBackend):
     def convert_condition_not(self, cond: ConditionNOT, state: ConversionState) -> Union[str, DeferredQueryExpression]:
         """Conversion of NOT conditions."""
         arg = cond.args[0]
-        state.processing_state['within_not'] = not (state.processing_state['within_not']) \
-            if 'within_not' in state.processing_state else True
+        self._toggle_within_not(state)
         try:
             if arg.__class__ in self.precedence:  # group if AND or OR condition is negated
-                return self.convert_condition_group(arg, state)
+                expr = self.convert_condition_group(arg, state)
+                self._toggle_within_not(state)
+                return expr
             else:
                 expr = self.convert_condition(arg, state)
                 if isinstance(expr, DeferredQueryExpression):  # negate deferred expression and pass it to parent
                     return expr.negate()
                 else:  # convert negated expression to string
-                    del state.processing_state['within_not']
+                    self._toggle_within_not(state)
                     return expr
         except TypeError:  # pragma: no cover
             raise NotImplementedError("Operator 'not' not supported by the backend")

@@ -186,6 +186,85 @@ def test_stix_minimal_not_two_sel_expression(stix_backend: stixBackend):
     ) == ["[(field:a != 'valueA') AND (field:a = 'valueA')]"]
 
 
+def test_stix_contains_list_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field:a|contains:
+                        - valueA
+                        - valueB
+                condition: sel
+        """)
+    ) == ["[(field:a LIKE '%valueA%') OR (field:a LIKE '%valueB%')]"]
+
+
+def test_stix_not_contains_list_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field:a|contains:
+                        - valueA
+                        - valueB
+                condition: not sel
+        """)
+    ) == ["[((field:a NOT LIKE '%valueA%') AND (field:a NOT LIKE '%valueB%'))]"]
+
+
+def test_stix_minimal_not_two_sel_1_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel1:
+                    field:a|contains: valueA
+                sel2:
+                    field:b|contains|all: 
+                        - valueB
+                        - valueC
+                condition: not sel1 and sel2
+        """)
+    ) == ["[(field:a NOT LIKE '%valueA%') AND ((field:b LIKE '%valueB%') AND (field:b LIKE '%valueC%'))]"]
+
+
+def test_stix_minimal_not_two_sel_2_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel1:
+                    field:a|contains: 
+                        - valueA1
+                        - valueA2
+                sel2:
+                    field:b|contains|all: 
+                        - valueB
+                        - valueC
+                condition: not sel1 and sel2
+        """)
+    ) == ["[(((field:a NOT LIKE '%valueA1%') AND (field:a NOT LIKE '%valueA2%'))) "
+          "AND ((field:b LIKE '%valueB%') AND (field:b LIKE '%valueC%'))]"]
+
+
 def test_stix_and_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""
