@@ -40,6 +40,22 @@ def test_stix_minimal_int_expression(stix_backend: stixBackend):
     ) == ["[field:A = 1234]"]
 
 
+def test_stix_minimal_str_int_expression(stix_backend: stixBackend):
+    assert stix_backend.convert(
+        SigmaCollection.from_yaml("""
+            title: Test
+            status: test
+            logsource:
+                category: test_category
+                product: test_product
+            detection:
+                sel:
+                    field:A: '1234'
+                condition: sel
+        """)
+    ) == ["[field:A = '1234']"]
+
+
 def test_stix_minimal_escaping_1_expression(stix_backend: stixBackend):
     assert stix_backend.convert(
         SigmaCollection.from_yaml("""

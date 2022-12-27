@@ -1,5 +1,7 @@
-from sigma.processing.transformations import FieldMappingTransformation
+from typing import Union
+from sigma.processing.transformations import FieldMappingTransformation, ValueTransformation
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
+from sigma.types import SigmaString, SigmaNumber
 
 stix_2_0_mapping = {
     "User": [
@@ -540,6 +542,24 @@ stix_shifter_mapping = {
         "x-qradar:severity"
     ]
 }
+keep_numeric_fields = {
+    'network-traffic:dst_port',
+    'network-traffic:src_port',
+    'x-oca-event:code',
+}
+
+
+class NumericValueCastingTransformation(ValueTransformation):
+    """
+    By default, numeric values are converted to string, except for the certain fields.
+    """
+    def __post_init__(self):
+        super().__post_init__()
+
+    def apply_value(self, field: str, val: SigmaNumber) -> Union[SigmaString, SigmaNumber]:
+        if field in keep_numeric_fields:
+            return val
+        return SigmaString(str(val))
 
 
 def stix_2_0() -> ProcessingPipeline:
@@ -552,6 +572,10 @@ def stix_2_0() -> ProcessingPipeline:
                 identifier="stix_2_0",
                 transformation=FieldMappingTransformation(stix_2_0_mapping),
             ),
+            ProcessingItem(
+                identifier="numeric_value_mapping",
+                transformation=NumericValueCastingTransformation(),
+            )
         ],
     )
 
@@ -564,6 +588,10 @@ def stix_shifter() -> ProcessingPipeline:
             ProcessingItem(
                 identifier="stix_shifter",
                 transformation=FieldMappingTransformation(stix_shifter_mapping),
+            ),
+            ProcessingItem(
+                identifier="numeric_value_mapping",
+                transformation=NumericValueCastingTransformation(),
             )
         ]
     )
