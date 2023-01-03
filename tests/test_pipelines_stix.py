@@ -1,4 +1,3 @@
-import pytest
 from sigma.backends.stix import stixBackend
 from sigma.pipelines.stix import stix_2_0
 from sigma.collection import SigmaCollection
@@ -20,3 +19,19 @@ def test_stix_2_fields_mapping():
                 condition: sel
         """)
     ) == ["[(file:name = 'foo.exe') AND (user-account:user_id = '1234') AND (network-traffic:dst_port = 1337)]"]
+
+# TODO - Add more tests
+# def test_stix_2_split_detection():
+#     assert stixBackend(stix_2_0()).convert(
+#         SigmaCollection.from_yaml(f"""
+#             title: Test
+#             status: test
+#             logsource:
+#                 product: windows
+#                 category: process_creation
+#             detection:
+#                 sel:
+#                     filename: tmp/bar/foo.exe
+#                 condition: sel
+#         """)
+#     ) == ["[((file:name = 'foo.exe') AND (file:parent_directory_ref.path = 'tmp/bar'))]"]
