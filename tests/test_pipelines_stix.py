@@ -39,6 +39,57 @@ def test_stix_2_split_image_windows_single_pipeline():
     ) == ["[(file:name = 'foo.exe') AND (file:parent_directory_ref.path = 'c:\\\\tmp\\\\bar')]"]
 
 
+def test_stix_2_split_image_windows_single_case1_pipeline():
+    assert stixBackend(stix_2_0()).convert(
+        SigmaCollection.from_yaml(f"""
+            title: Test
+            status: test
+            logsource:
+                product: windows
+                category: process_creation
+            detection:
+                sel:
+                    filename|startswith:
+                        - \\foo.exe
+                condition: sel
+        """)
+    ) == ["[file:name LIKE 'foo.exe%']"]
+
+
+def test_stix_2_split_image_windows_single_case2_pipeline():
+    assert stixBackend(stix_2_0()).convert(
+        SigmaCollection.from_yaml(f"""
+            title: Test
+            status: test
+            logsource:
+                product: windows
+                category: process_creation
+            detection:
+                sel:
+                    filename:
+                        - \\foo.exe
+                condition: sel
+        """)
+    ) == ["[file:name = 'foo.exe']"]
+
+
+# def test_stix_2_split_image_windows_single_case3_pipeline():
+#     assert stixBackend(stix_2_0()).convert(
+#         SigmaCollection.from_yaml(f"""
+#             title: Test
+#             status: test
+#             logsource:
+#                 product: windows
+#                 category: process_creation
+#             detection:
+#                 sel:
+#                     filename:
+#                         - c:\\foo\\bar\\
+#                 condition: sel
+#         """)
+#     ) == ["[file:name = 'foo.exe']"]
+
+
 def test_stix_2_split_image_windows_single_like_pipeline():
     assert stixBackend(stix_2_0()).convert(
         SigmaCollection.from_yaml(f"""
