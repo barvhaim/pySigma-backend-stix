@@ -1,7 +1,12 @@
-from typing import Union
-from sigma.processing.transformations import FieldMappingTransformation, ValueTransformation
+import re
+from typing import Union, Optional, Iterable
+from sigma.modifiers import SigmaContainsModifier
+from sigma.processing.conditions import LogsourceCondition
+from sigma.processing.transformations import FieldMappingTransformation, ValueTransformation, \
+    DetectionItemTransformation
 from sigma.processing.pipeline import ProcessingItem, ProcessingPipeline
-from sigma.types import SigmaString, SigmaNumber
+from sigma.rule import SigmaDetectionItem, SigmaDetection
+from sigma.types import SigmaString, SigmaNumber, SigmaType
 
 stix_2_0_mapping = {
     "User": [
@@ -562,6 +567,80 @@ class NumericValueCastingTransformation(ValueTransformation):
         return SigmaString(str(val))
 
 
+class LinuxArgumentsCommandLineLikeTransformation(ValueTransformation):
+
+    def apply_value(self, field: str, val: SigmaString) -> Optional[Union[SigmaType, Iterable[SigmaType]]]:
+        return SigmaString(' ' + str(val) + ' ')
+
+    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
+            Union[SigmaDetection, SigmaDetectionItem]]:
+        super().apply_detection_item(detection_item)
+        argument_regex_pattern = r"a[0-9]+"  # a0, a1, a2, ...
+        if re.match(argument_regex_pattern, detection_item.field):
+            if SigmaContainsModifier not in detection_item.modifiers:
+                new_detection_item = SigmaDetectionItem(
+                    field=detection_item.field,
+                    modifiers=detection_item.modifiers + [SigmaContainsModifier],
+                    value=detection_item.value,
+                    value_linking=detection_item.value_linking
+                )
+                return new_detection_item
+        return detection_item
+
+
+class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
+
+    @staticmethod
+    def _create_filename_detection(full_path: str, detection_item: SigmaDetectionItem) -> Optional[SigmaDetection]:
+        full_path_arr = full_path.split('\\')
+        if len(full_path_arr) > 1:
+            directory_path_arr = full_path_arr[:-1]
+            directory_path = '\\'.join(directory_path_arr)
+            filename = full_path_arr[-1]
+
+            filename_detection_item = SigmaDetectionItem(
+                field='file:name',
+                value=[SigmaString(filename)],
+                modifiers=detection_item.modifiers,
+            )
+            directory_detection_item = SigmaDetectionItem(
+                field='file:parent_directory_ref.path',
+                value=[SigmaString(directory_path)],
+                modifiers=detection_item.modifiers,
+            )
+            return SigmaDetection(
+                detection_items=[
+                    filename_detection_item,
+                    directory_detection_item
+                ]
+            )
+        return SigmaDetection(
+            detection_items=[
+                SigmaDetectionItem(
+                    field=detection_item.field,
+                    value=[SigmaString(full_path)],
+                    modifiers=detection_item.modifiers,
+                )
+            ]
+        )
+
+    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
+            Union[SigmaDetection, SigmaDetectionItem]]:
+
+        if detection_item.field == 'file:name':
+            if isinstance(detection_item.value, list):
+                aggregated_detections = []
+                values = detection_item.value
+                for value in values:
+                    filename_detection = self._create_filename_detection(str(value),
+                                                                         detection_item)
+                    aggregated_detections.append(filename_detection)
+                return SigmaDetection(
+                    detection_items=aggregated_detections
+                )
+        return detection_item
+
+
 def stix_2_0() -> ProcessingPipeline:
     """This is a pipeline that maps fields to the STIX 2.0 format."""
     return ProcessingPipeline(
@@ -569,13 +648,31 @@ def stix_2_0() -> ProcessingPipeline:
         priority=100,
         items=[
             ProcessingItem(
+                identifier="linux_arguments_command_line_like",
+                transformation=LinuxArgumentsCommandLineLikeTransformation(),
+                rule_conditions=[
+                    LogsourceCondition(
+                        product="linux",
+                    )
+                ]
+            ),
+            ProcessingItem(
                 identifier="stix_2_0",
                 transformation=FieldMappingTransformation(stix_2_0_mapping),
             ),
             ProcessingItem(
                 identifier="numeric_value_mapping",
                 transformation=NumericValueCastingTransformation(),
-            )
+            ),
+            ProcessingItem(
+                identifier="image_split_windows",
+                transformation=SplitImageFieldWindowsTransformation(),
+                rule_conditions=[
+                    LogsourceCondition(
+                        product="windows",
+                    )
+                ]
+            ),
         ],
     )
 
