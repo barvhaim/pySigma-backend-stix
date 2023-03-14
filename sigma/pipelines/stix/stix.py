@@ -247,7 +247,7 @@ stix_2_0_mapping = {
         "process:binary_ref.name"
     ],
     "ImagePath": [
-        "process:binary_ref.parent_directory_ref.path.name"
+        "process:binary_ref.parent_directory_ref.path"
     ],
     "SourceImage": [
         "process:binary_ref.name"
@@ -457,7 +457,7 @@ stix_shifter_mapping = {
         "x-oca-event:action"
     ],
     "PipeName": [
-        "x-oca-event:pipename"
+        "x-oca-event:pipe_name"
     ],
     "cs-host": [
         "x-oca-asset:hostname",
