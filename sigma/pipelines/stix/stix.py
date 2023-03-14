@@ -1,6 +1,7 @@
 import re
 from typing import Union, Optional, Iterable, Tuple
-from sigma.modifiers import SigmaContainsModifier
+from sigma.modifiers import SigmaContainsModifier, SigmaStartswithModifier, SigmaEndswithModifier, \
+    SigmaValueModifier
 from sigma.processing.conditions import LogsourceCondition
 from sigma.processing.transformations import FieldMappingTransformation, ValueTransformation, \
     DetectionItemTransformation
@@ -596,7 +597,16 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
         'file:name'
     }
 
+    wildcard_token = '*'
     backslash_token = '\\'
+
+    def _clean_value(self, value: str, modifiers: list) -> str:
+        if SigmaContainsModifier in modifiers:
+            if value.startswith(self.wildcard_token):
+                value = value[1:]
+            if value.endswith(self.wildcard_token):
+                value = value[:-1]
+        return value
 
     def _extract_directory_path_and_filename_from_value(self, value: str) -> Optional[Tuple[Optional[str], Optional[str]]]:
         if value.endswith(self.backslash_token):
@@ -656,7 +666,8 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
             if isinstance(detection_item.value, list):
                 aggregated_detections = []
                 for value in detection_item.value:
-                    produced_detection = self._produce_detection(str(value),
+                    value_raw = self._clean_value(str(value), detection_item.modifiers)
+                    produced_detection = self._produce_detection(value_raw,
                                                                  detection_item)
                     if produced_detection is not None:
                         aggregated_detections.append(produced_detection)
