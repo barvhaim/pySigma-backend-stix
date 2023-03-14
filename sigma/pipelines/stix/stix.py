@@ -456,6 +456,9 @@ stix_shifter_mapping = {
     "pam_message": [
         "x-oca-event:action"
     ],
+    "PipeName": [
+        "x-oca-event:pipename"
+    ],
     "cs-host": [
         "x-oca-asset:hostname",
         "domain-name:value"
@@ -498,8 +501,7 @@ stix_shifter_mapping = {
         "x-qradar:credibility"
     ],
     "Device": [
-        "x-qradar:device_type",
-        "file:name"
+        "x-qradar:device_type"
     ],
     "devicetype": [
         "x-qradar:device_type"
@@ -593,7 +595,19 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
     @staticmethod
     def _create_filename_detection(full_path: str, detection_item: SigmaDetectionItem) -> Optional[SigmaDetection]:
         full_path_arr = full_path.split('\\')
-        if len(full_path_arr) > 1:
+        full_path_arr = list(filter(lambda x: x != '', full_path_arr))
+        if len(full_path_arr) == 1:
+            filename = full_path_arr[0]
+            return SigmaDetection(
+                detection_items=[
+                    SigmaDetectionItem(
+                        field=detection_item.field,
+                        value=[SigmaString(filename)],
+                        modifiers=detection_item.modifiers,
+                    )
+                ]
+            )
+        elif len(full_path_arr) > 1:
             directory_path_arr = full_path_arr[:-1]
             directory_path = '\\'.join(directory_path_arr)
             filename = full_path_arr[-1]
