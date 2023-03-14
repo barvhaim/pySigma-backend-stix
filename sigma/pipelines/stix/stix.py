@@ -1,5 +1,5 @@
 import re
-from typing import Union, Optional, Iterable
+from typing import Union, Optional, Iterable, Tuple
 from sigma.modifiers import SigmaContainsModifier
 from sigma.processing.conditions import LogsourceCondition
 from sigma.processing.transformations import FieldMappingTransformation, ValueTransformation, \
@@ -592,66 +592,78 @@ class LinuxArgumentsCommandLineLikeTransformation(ValueTransformation):
 
 class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
 
-    @staticmethod
-    def _create_filename_detection(full_path: str, detection_item: SigmaDetectionItem) -> Optional[SigmaDetection]:
-        full_path_arr = full_path.split('\\')
-        full_path_arr = list(filter(lambda x: x != '', full_path_arr))
-        if len(full_path_arr) == 1:
-            filename = full_path_arr[0]
-            return SigmaDetection(
-                detection_items=[
-                    SigmaDetectionItem(
-                        field=detection_item.field,
-                        value=[SigmaString(filename)],
-                        modifiers=detection_item.modifiers,
-                    )
-                ]
-            )
-        elif len(full_path_arr) > 1:
-            directory_path_arr = full_path_arr[:-1]
-            directory_path = '\\'.join(directory_path_arr)
-            filename = full_path_arr[-1]
+    fields_to_split = {
+        'file:name'
+    }
 
-            filename_detection_item = SigmaDetectionItem(
-                field='file:name',
-                value=[SigmaString(filename)],
-                modifiers=detection_item.modifiers,
-            )
-            directory_detection_item = SigmaDetectionItem(
-                field='file:parent_directory_ref.path',
-                value=[SigmaString(directory_path)],
-                modifiers=detection_item.modifiers,
-            )
-            return SigmaDetection(
-                detection_items=[
-                    filename_detection_item,
-                    directory_detection_item
-                ]
-            )
-        return SigmaDetection(
-            detection_items=[
-                SigmaDetectionItem(
-                    field=detection_item.field,
-                    value=[SigmaString(full_path)],
-                    modifiers=detection_item.modifiers,
-                )
-            ]
+    backslash_token = '\\'
+
+    def _extract_directory_path_and_filename_from_value(self, value: str) -> Optional[Tuple[Optional[str], Optional[str]]]:
+        if value.endswith(self.backslash_token):
+            # if the value ends with a backslash, it is a directory path
+            return value, None
+        value_arr = value.split(self.backslash_token)
+        value_arr_dropped_empty = list(filter(lambda x: x != '', value_arr))
+
+        if len(value_arr_dropped_empty) == 1:
+            # if the value contains only one element, it is a filename
+            return None, value_arr_dropped_empty[0]
+
+        if len(value_arr_dropped_empty) > 1:
+            # if the value contains more than one element, the last element is a filename,
+            # and the rest is a directory path
+            filename = value_arr_dropped_empty[-1]
+            directory_path_arr = value_arr_dropped_empty[:-1]
+            directory_path = self.backslash_token.join(directory_path_arr)
+            return directory_path, filename
+
+    @staticmethod
+    def _create_detection_item(value: str, field: str, original_detection_item: SigmaDetectionItem) -> \
+            SigmaDetectionItem:
+        return SigmaDetectionItem(
+            field=field,
+            modifiers=original_detection_item.modifiers,
+            value=[SigmaString(value)],
         )
+
+    def _produce_detection(self, value: str, detection_item: SigmaDetectionItem) -> Optional[SigmaDetection]:
+        directory_path, filename = self._extract_directory_path_and_filename_from_value(value)
+
+        if directory_path is None and filename is None:
+            return None
+
+        directory_path_detection_item = None
+        filename_detection_item = None
+
+        if directory_path is not None:
+            directory_path_detection_item = self._create_detection_item(directory_path,
+                                                                        'file:parent_directory_ref.path',
+                                                                        detection_item)
+
+        if filename is not None:
+            filename_detection_item = self._create_detection_item(filename,
+                                                                  'file:name',
+                                                                  detection_item)
+
+        filtered_detections = list(filter(lambda x: x is not None,
+                                          [filename_detection_item, directory_path_detection_item]))
+        return SigmaDetection(detection_items=filtered_detections) if len(filtered_detections) > 0 else None
 
     def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
             Union[SigmaDetection, SigmaDetectionItem]]:
 
-        if detection_item.field == 'file:name':
+        if detection_item.field in self.fields_to_split:
             if isinstance(detection_item.value, list):
                 aggregated_detections = []
-                values = detection_item.value
-                for value in values:
-                    filename_detection = self._create_filename_detection(str(value),
-                                                                         detection_item)
-                    aggregated_detections.append(filename_detection)
-                return SigmaDetection(
-                    detection_items=aggregated_detections
-                )
+                for value in detection_item.value:
+                    produced_detection = self._produce_detection(str(value),
+                                                                 detection_item)
+                    if produced_detection is not None:
+                        aggregated_detections.append(produced_detection)
+                return SigmaDetection(detection_items=aggregated_detections)
+            else:
+                # TODO - when is this case happening?
+                raise ValueError(f"Value of field {detection_item.field} is not a list")
         return detection_item
 
 
