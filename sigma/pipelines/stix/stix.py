@@ -1,7 +1,7 @@
+from copy import deepcopy
 import re
 from typing import Union, Optional, Iterable, Tuple
-from sigma.modifiers import SigmaContainsModifier, SigmaStartswithModifier, SigmaEndswithModifier, \
-    SigmaValueModifier
+from sigma.modifiers import SigmaContainsModifier, SigmaStartswithModifier, SigmaEndswithModifier
 from sigma.processing.conditions import LogsourceCondition
 from sigma.processing.transformations import FieldMappingTransformation, ValueTransformation, \
     DetectionItemTransformation
@@ -629,11 +629,29 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
             return directory_path, filename
 
     @staticmethod
-    def _create_detection_item(value: str, field: str, original_detection_item: SigmaDetectionItem) -> \
-            SigmaDetectionItem:
+    def _create_detection_item(value: str, field: str, original_detection_item: SigmaDetectionItem,
+                               two_parts=False) -> SigmaDetectionItem:
+
+        modifiers = deepcopy(original_detection_item.modifiers)
+
+        if two_parts:
+            if SigmaContainsModifier in modifiers:
+                if 'name' in field:
+                    modifiers.remove(SigmaContainsModifier)
+                    modifiers.append(SigmaStartswithModifier)
+                elif 'directory' in field:
+                    modifiers.remove(SigmaContainsModifier)
+                    modifiers.append(SigmaEndswithModifier)
+            elif SigmaStartswithModifier in modifiers:
+                if 'directory' in field:
+                    modifiers.remove(SigmaStartswithModifier)
+            elif SigmaEndswithModifier in modifiers:
+                if 'name' in field:
+                    modifiers.remove(SigmaEndswithModifier)
+
         return SigmaDetectionItem(
             field=field,
-            modifiers=original_detection_item.modifiers,
+            modifiers=modifiers,
             value=[SigmaString(value)],
         )
 
@@ -649,12 +667,14 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
         if directory_path is not None:
             directory_path_detection_item = self._create_detection_item(directory_path,
                                                                         'file:parent_directory_ref.path',
-                                                                        detection_item)
+                                                                        detection_item,
+                                                                        filename is not None)
 
         if filename is not None:
             filename_detection_item = self._create_detection_item(filename,
                                                                   'file:name',
-                                                                  detection_item)
+                                                                  detection_item,
+                                                                  directory_path is not None)
 
         filtered_detections = list(filter(lambda x: x is not None,
                                           [filename_detection_item, directory_path_detection_item]))
