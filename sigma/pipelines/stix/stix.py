@@ -601,9 +601,10 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
     backslash_token = '\\'
 
     def _clean_value(self, value: str, modifiers: list) -> str:
-        if SigmaContainsModifier in modifiers:
-            if value.startswith(self.wildcard_token):
-                value = value[1:]
+        if (SigmaContainsModifier in modifiers or SigmaEndswithModifier in modifiers) \
+                and value.startswith(self.wildcard_token):
+            value = value[1:]
+        if SigmaContainsModifier in modifiers or SigmaStartswithModifier in modifiers:
             if value.endswith(self.wildcard_token):
                 value = value[:-1]
         return value

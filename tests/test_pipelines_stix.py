@@ -174,7 +174,7 @@ def test_stix_2_split_image_windows_single_case3_pipeline():
                         - c:\\foo\\bar\\
                 condition: sel
         """)
-    ) == ["[file:parent_directory_ref.path LIKE 'c:\\\\foo\\\\bar%']"]
+    ) == ["[file:parent_directory_ref.path LIKE 'c:\\\\foo\\\\bar\\\\%']"]
 
 
 # case4 - only directory path (no filename) - endswith
@@ -192,7 +192,7 @@ def test_stix_2_split_image_windows_single_case4_pipeline():
                         - c:\\foo\\bar\\
                 condition: sel
         """)
-    ) == ["[file:parent_directory_ref.path LIKE '%c:\\\\foo\\\\bar']"]
+    ) == ["[file:parent_directory_ref.path LIKE '%c:\\\\foo\\\\bar\\\\']"]
 
 
 # case5 - only filename (no directory path)
