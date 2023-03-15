@@ -358,3 +358,22 @@ def test_stix_2_split_image_windows_single_case14_pipeline():
         """)
     ) == ["[(process:binary_ref.name = 'foo.exe') AND "
           "(process:binary_ref.parent_directory_ref.path = 'c:\\\\foo\\\\bar')]"]
+
+
+# case15 - directory path and filename (process)
+def test_stix_2_split_image_linux_single_case15_pipeline():
+    assert stixBackend(stix_2_0()).convert(
+        SigmaCollection.from_yaml(f"""
+            title: Test
+            status: test
+            logsource:
+                product: linux
+                category: process_creation
+            detection:
+                sel:
+                    Image:
+                        - /foo/bar/foo.exe
+                condition: sel
+        """)
+    ) == ["[(process:binary_ref.name = 'foo.exe') AND "
+          "(process:binary_ref.parent_directory_ref.path = '/foo/bar')]"]

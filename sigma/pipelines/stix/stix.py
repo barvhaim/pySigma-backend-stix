@@ -591,7 +591,9 @@ class LinuxArgumentsCommandLineLikeTransformation(ValueTransformation):
         return detection_item
 
 
-class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
+class SplitImageFieldTransformation:
+    def __init__(self, platform: str):
+        self.backslash_token = '\\' if platform == 'windows' else '/'
 
     file_type = 'file'
     directory_type = 'directory'
@@ -612,7 +614,6 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
     }
 
     wildcard_token = '*'
-    backslash_token = '\\'
 
     def _clean_value(self, value: str, modifiers: list) -> str:
         if (SigmaContainsModifier in modifiers or SigmaEndswithModifier in modifiers) \
@@ -698,7 +699,7 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
         return SigmaDetection(detection_items=filtered_detections) if len(filtered_detections) > 0 else None
 
     def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
-            Union[SigmaDetection, SigmaDetectionItem]]:
+        Union[SigmaDetection, SigmaDetectionItem]]:
 
         if detection_item.field in self.fields_to_split_kb.keys():
             if isinstance(detection_item.value, list):
@@ -714,6 +715,20 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
                 # TODO - when is this case happening?
                 raise ValueError(f"Value of field {detection_item.field} is not a list")
         return detection_item
+
+
+class SplitImageFieldLinuxTransformation(DetectionItemTransformation):
+    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
+            Union[SigmaDetection, SigmaDetectionItem]]:
+        base = SplitImageFieldTransformation(platform="linux")
+        return base.apply_detection_item(detection_item)
+
+
+class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
+    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
+            Union[SigmaDetection, SigmaDetectionItem]]:
+        base = SplitImageFieldTransformation(platform="windows")
+        return base.apply_detection_item(detection_item)
 
 
 def stix_2_0() -> ProcessingPipeline:
@@ -745,6 +760,15 @@ def stix_2_0() -> ProcessingPipeline:
                 rule_conditions=[
                     LogsourceCondition(
                         product="windows",
+                    )
+                ]
+            ),
+            ProcessingItem(
+                identifier="image_split_linux",
+                transformation=SplitImageFieldLinuxTransformation(),
+                rule_conditions=[
+                    LogsourceCondition(
+                        product="linux",
                     )
                 ]
             ),
