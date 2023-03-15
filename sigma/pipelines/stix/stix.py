@@ -572,14 +572,17 @@ class NumericValueCastingTransformation(ValueTransformation):
 
 class LinuxArgumentsCommandLineLikeTransformation(ValueTransformation):
 
+    argument_regex_pattern = r"a[0-9]+"  # a0, a1, a2, ...
+
     def apply_value(self, field: str, val: SigmaString) -> Optional[Union[SigmaType, Iterable[SigmaType]]]:
-        return SigmaString(' ' + str(val) + ' ')
+        if re.match(self.argument_regex_pattern, field):
+            return SigmaString(' ' + str(val) + ' ')
+        return val
 
     def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
             Union[SigmaDetection, SigmaDetectionItem]]:
         super().apply_detection_item(detection_item)
-        argument_regex_pattern = r"a[0-9]+"  # a0, a1, a2, ...
-        if re.match(argument_regex_pattern, detection_item.field):
+        if re.match(self.argument_regex_pattern, detection_item.field):
             if SigmaContainsModifier not in detection_item.modifiers:
                 new_detection_item = SigmaDetectionItem(
                     field=detection_item.field,
@@ -641,6 +644,8 @@ class SplitImageFieldTransformation:
             filename = value_arr_dropped_empty[-1]
             directory_path_arr = value_arr_dropped_empty[:-1]
             directory_path = self.backslash_token.join(directory_path_arr)
+            if value.startswith(self.backslash_token):
+                directory_path = self.backslash_token + directory_path
             return directory_path, filename
 
     def _create_detection_item(self, value: str, field: str, field_type: str, original_detection_item: SigmaDetectionItem,

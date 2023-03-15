@@ -338,7 +338,7 @@ def test_stix_2_split_image_windows_single_case13_pipeline():
                         - \\bar\\foo.exe
                 condition: sel
         """)
-    ) == ["[(file:name = 'foo.exe') AND (file:parent_directory_ref.path = 'bar')]"]
+    ) == ["[(file:name = 'foo.exe') AND (file:parent_directory_ref.path = '\\\\bar')]"]
 
 
 # case14 - directory path and filename (process)
@@ -377,3 +377,60 @@ def test_stix_2_split_image_linux_single_case15_pipeline():
         """)
     ) == ["[(process:binary_ref.name = 'foo.exe') AND "
           "(process:binary_ref.parent_directory_ref.path = '/foo/bar')]"]
+
+
+# case16 - directory path and filename (process, contains)
+def test_stix_2_split_image_linux_single_case16_pipeline():
+    assert stixBackend(stix_2_0()).convert(
+        SigmaCollection.from_yaml(f"""
+            title: Test
+            status: test
+            logsource:
+                product: linux
+                category: process_creation
+            detection:
+                sel:
+                    Image|contains:
+                        - /foo/bar/foo.exe
+                condition: sel
+        """)
+    ) == ["[(process:binary_ref.name LIKE 'foo.exe%') AND "
+          "(process:binary_ref.parent_directory_ref.path LIKE '%/foo/bar')]"]
+
+
+# case17 - directory path and filename (process, startswith)
+def test_stix_2_split_image_linux_single_case17_pipeline():
+    assert stixBackend(stix_2_0()).convert(
+        SigmaCollection.from_yaml(f"""
+            title: Test
+            status: test
+            logsource:
+                product: linux
+                category: process_creation
+            detection:
+                sel:
+                    Image|startswith:
+                        - /foo/bar/foo.exe
+                condition: sel
+        """)
+    ) == ["[(process:binary_ref.name LIKE 'foo.exe%') AND "
+          "(process:binary_ref.parent_directory_ref.path = '/foo/bar')]"]
+
+
+# case18 - directory path and filename (process, endswith)
+def test_stix_2_split_image_linux_single_case18_pipeline():
+    assert stixBackend(stix_2_0()).convert(
+        SigmaCollection.from_yaml(f"""
+            title: Test
+            status: test
+            logsource:
+                product: linux
+                category: process_creation
+            detection:
+                sel:
+                    Image|endswith:
+                        - /foo/bar/foo.exe
+                condition: sel
+        """)
+    ) == ["[(process:binary_ref.name = 'foo.exe') AND "
+          "(process:binary_ref.parent_directory_ref.path LIKE '%/foo/bar')]"]
