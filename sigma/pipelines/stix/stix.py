@@ -593,8 +593,22 @@ class LinuxArgumentsCommandLineLikeTransformation(ValueTransformation):
 
 class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
 
-    fields_to_split = {
-        'file:name'
+    file_type = 'file'
+    directory_type = 'directory'
+
+    fields_to_split_kb = {
+        'file:name': {
+            file_type: 'file:name',
+            directory_type: 'file:parent_directory_ref.path'
+        },
+        'process:binary_ref.name': {
+            file_type: 'process:binary_ref.name',
+            directory_type: 'process:binary_ref.parent_directory_ref.path'
+        },
+        'process:parent_ref.binary_ref.name': {
+            file_type: 'process:parent_ref.binary_ref.name',
+            directory_type: 'process:parent_ref.binary_ref.parent_directory_ref.path'
+        }
     }
 
     wildcard_token = '*'
@@ -628,25 +642,24 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
             directory_path = self.backslash_token.join(directory_path_arr)
             return directory_path, filename
 
-    @staticmethod
-    def _create_detection_item(value: str, field: str, original_detection_item: SigmaDetectionItem,
+    def _create_detection_item(self, value: str, field: str, field_type: str, original_detection_item: SigmaDetectionItem,
                                two_parts=False) -> SigmaDetectionItem:
 
         modifiers = deepcopy(original_detection_item.modifiers)
 
         if two_parts:
             if SigmaContainsModifier in modifiers:
-                if 'name' in field:
+                if field_type == self.file_type:
                     modifiers.remove(SigmaContainsModifier)
                     modifiers.append(SigmaStartswithModifier)
-                elif 'directory' in field:
+                elif field_type == self.directory_type:
                     modifiers.remove(SigmaContainsModifier)
                     modifiers.append(SigmaEndswithModifier)
             elif SigmaStartswithModifier in modifiers:
-                if 'directory' in field:
+                if field_type == self.directory_type:
                     modifiers.remove(SigmaStartswithModifier)
             elif SigmaEndswithModifier in modifiers:
-                if 'name' in field:
+                if field_type == self.file_type:
                     modifiers.remove(SigmaEndswithModifier)
 
         return SigmaDetectionItem(
@@ -665,14 +678,18 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
         filename_detection_item = None
 
         if directory_path is not None:
+            directory_field = self.fields_to_split_kb[detection_item.field]['directory']
             directory_path_detection_item = self._create_detection_item(directory_path,
-                                                                        'file:parent_directory_ref.path',
+                                                                        directory_field,
+                                                                        self.directory_type,
                                                                         detection_item,
                                                                         filename is not None)
 
         if filename is not None:
+            filename_field = self.fields_to_split_kb[detection_item.field]['file']
             filename_detection_item = self._create_detection_item(filename,
-                                                                  'file:name',
+                                                                  filename_field,
+                                                                  self.file_type,
                                                                   detection_item,
                                                                   directory_path is not None)
 
@@ -683,7 +700,7 @@ class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
     def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
             Union[SigmaDetection, SigmaDetectionItem]]:
 
-        if detection_item.field in self.fields_to_split:
+        if detection_item.field in self.fields_to_split_kb.keys():
             if isinstance(detection_item.value, list):
                 aggregated_detections = []
                 for value in detection_item.value:
