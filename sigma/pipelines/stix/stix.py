@@ -1,4 +1,5 @@
 from copy import deepcopy
+from abc import ABC
 import re
 from typing import Union, Optional, Iterable, Tuple
 from sigma.modifiers import SigmaContainsModifier, SigmaStartswithModifier, SigmaEndswithModifier
@@ -594,36 +595,38 @@ class LinuxArgumentsCommandLineLikeTransformation(ValueTransformation):
         return detection_item
 
 
-class SplitImageFieldTransformation:
-    def __init__(self, platform: str):
-        self.backslash_token = '\\' if platform == 'windows' else '/'
+class SplitImageFieldTransformation(DetectionItemTransformation, ABC):
 
-    file_type = 'file'
-    directory_type = 'directory'
+    FILE_TYPE = 'file'
+    DIRECTORY_TYPE = 'directory'
+    WILDCARD_TOKEN = '*'
 
     fields_to_split_kb = {
         'file:name': {
-            file_type: 'file:name',
-            directory_type: 'file:parent_directory_ref.path'
+            FILE_TYPE: 'file:name',
+            DIRECTORY_TYPE: 'file:parent_directory_ref.path'
         },
         'process:binary_ref.name': {
-            file_type: 'process:binary_ref.name',
-            directory_type: 'process:binary_ref.parent_directory_ref.path'
+            FILE_TYPE: 'process:binary_ref.name',
+            DIRECTORY_TYPE: 'process:binary_ref.parent_directory_ref.path'
         },
         'process:parent_ref.binary_ref.name': {
-            file_type: 'process:parent_ref.binary_ref.name',
-            directory_type: 'process:parent_ref.binary_ref.parent_directory_ref.path'
+            FILE_TYPE: 'process:parent_ref.binary_ref.name',
+            DIRECTORY_TYPE: 'process:parent_ref.binary_ref.parent_directory_ref.path'
         }
     }
+    platform: str = NotImplemented  # abstract
 
-    wildcard_token = '*'
+    @property
+    def backslash_token(self):
+        return '\\' if self.platform == 'windows' else '/'
 
     def _clean_value(self, value: str, modifiers: list) -> str:
         if (SigmaContainsModifier in modifiers or SigmaEndswithModifier in modifiers) \
-                and value.startswith(self.wildcard_token):
+                and value.startswith(self.WILDCARD_TOKEN):
             value = value[1:]
         if SigmaContainsModifier in modifiers or SigmaStartswithModifier in modifiers:
-            if value.endswith(self.wildcard_token):
+            if value.endswith(self.WILDCARD_TOKEN):
                 value = value[:-1]
         return value
 
@@ -655,17 +658,17 @@ class SplitImageFieldTransformation:
 
         if two_parts:
             if SigmaContainsModifier in modifiers:
-                if field_type == self.file_type:
+                if field_type == self.FILE_TYPE:
                     modifiers.remove(SigmaContainsModifier)
                     modifiers.append(SigmaStartswithModifier)
-                elif field_type == self.directory_type:
+                elif field_type == self.DIRECTORY_TYPE:
                     modifiers.remove(SigmaContainsModifier)
                     modifiers.append(SigmaEndswithModifier)
             elif SigmaStartswithModifier in modifiers:
-                if field_type == self.directory_type:
+                if field_type == self.DIRECTORY_TYPE:
                     modifiers.remove(SigmaStartswithModifier)
             elif SigmaEndswithModifier in modifiers:
-                if field_type == self.file_type:
+                if field_type == self.FILE_TYPE:
                     modifiers.remove(SigmaEndswithModifier)
 
         return SigmaDetectionItem(
@@ -687,7 +690,7 @@ class SplitImageFieldTransformation:
             directory_field = self.fields_to_split_kb[detection_item.field]['directory']
             directory_path_detection_item = self._create_detection_item(directory_path,
                                                                         directory_field,
-                                                                        self.directory_type,
+                                                                        self.DIRECTORY_TYPE,
                                                                         detection_item,
                                                                         filename is not None)
 
@@ -695,7 +698,7 @@ class SplitImageFieldTransformation:
             filename_field = self.fields_to_split_kb[detection_item.field]['file']
             filename_detection_item = self._create_detection_item(filename,
                                                                   filename_field,
-                                                                  self.file_type,
+                                                                  self.FILE_TYPE,
                                                                   detection_item,
                                                                   directory_path is not None)
 
@@ -722,18 +725,12 @@ class SplitImageFieldTransformation:
         return detection_item
 
 
-class SplitImageFieldLinuxTransformation(DetectionItemTransformation):
-    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
-            Union[SigmaDetection, SigmaDetectionItem]]:
-        base = SplitImageFieldTransformation(platform="linux")
-        return base.apply_detection_item(detection_item)
+class SplitImageFieldLinuxTransformation(SplitImageFieldTransformation):
+    platform = 'linux'
 
 
-class SplitImageFieldWindowsTransformation(DetectionItemTransformation):
-    def apply_detection_item(self, detection_item: SigmaDetectionItem) -> Optional[
-            Union[SigmaDetection, SigmaDetectionItem]]:
-        base = SplitImageFieldTransformation(platform="windows")
-        return base.apply_detection_item(detection_item)
+class SplitImageFieldWindowsTransformation(SplitImageFieldTransformation):
+    platform = 'windows'
 
 
 def stix_2_0() -> ProcessingPipeline:
