@@ -31,13 +31,13 @@ jobs:
       - name: Store coverage for badge
         if: ${{ runner.os == 'Linux' }}
         run: poetry run python print-coverage.py >> $GITHUB_ENV
-      - name: Create coverage badge
-        if: ${{ github.repository == 'barvhaim/pySigma-backend-stix' && github.event_name == 'push' && runner.os == 'Linux' }}
-        uses: schneegans/dynamic-badges-action@v1.1.0
-        with:
-          auth: ${{ secrets.GIST_SECRET }}
-          gistID: GitHub Gist identifier containing coverage badge JSON expected by shields.io.
-          filename: barvhaim-pySigma-backend-stix.json
-          label: Coverage
-          message: ${{ env.COVERAGE }}
-          color: ${{ env.COVERAGE_COLOR }}
+  #    - name: Create coverage badge
+  #     if: ${{ github.repository == 'barvhaim/pySigma-backend-stix' && github.event_name == 'push' && runner.os == 'Linux' }}
+  #      uses: schneegans/dynamic-badges-action@v1.1.0
+  #      with:
+  #        auth: ${{ secrets.GIST_SECRET }}
+  #        gistID: GitHub Gist identifier containing coverage badge JSON expected by shields.io.
+  #        filename: barvhaim-pySigma-backend-stix.json
+  #        label: Coverage
+  #        message: ${{ env.COVERAGE }}
+  #        color: ${{ env.COVERAGE_COLOR }}
